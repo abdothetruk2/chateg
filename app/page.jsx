@@ -95,10 +95,7 @@ const router = useRouter();
   const inputref = useRef(null);
   const currentUser = getCurrentUser();
   const groupedStatus = groupStatusByUser(status);
-if (!currentUser?.username) {
 
-  return router.push("/login")
-}
   async function getMessages(user) {
     try {
       const currentUser = getCurrentUser();

@@ -3,6 +3,8 @@ const nextConfig = {
   output: "standalone",
   poweredByHeader: false,
   compress: true,
+        cacheComponents: true,
+
   images: {
     formats: ["image/avif", "image/webp"]  ,
     minimumCacheTTL: 60 * 60 * 24 * 30,
@@ -15,7 +17,7 @@ const nextConfig = {
       },
       {
       protocol: "http",
-      hostname: "localhost",
+      hostname: "localhost",  
       port: "3000",
       },
       {

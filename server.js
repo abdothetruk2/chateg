@@ -48,8 +48,12 @@ app.prepare().then(async () => {
 
   const httpServer = createServer(handler);
 
-  const io = new Server(httpServer);
-  io.on("connection", (socket) => {
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || "*",
+    methods: ["GET", "POST"],
+  },
+});  io.on("connection", (socket) => {
     socket.on("user", async function (username) {
       if (!username) return;
 
