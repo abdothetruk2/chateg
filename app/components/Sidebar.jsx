@@ -1,11 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { CircleAlert, MessageSquare, Phone, Settings, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "../../lib/utils";
-import { useRouter } from "next/navigation"
 import Cookies from "js-cookie";
 const items = [
   { name: "Messages", icon: MessageSquare, href: "/" },
@@ -16,11 +16,15 @@ const items = [
 ];
 
 export default function Sidebar() {
-const router = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
-if(!Cookies.get("user")) {
-  router.push("/login")
-}
+
+  useEffect(() => {
+    if (!Cookies.get("user")) {
+      router.push("/login");
+    }
+  }, [router]);
+
   return (
    
    <aside className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-center justify-around border-t border-white/10 bg-[#07111f]/90 px-2 shadow-[0_-16px_38px_rgba(0,0,0,0.32)] backdrop-blur-xl lg:sticky lg:top-0 lg:h-screen lg:w-[72px] lg:flex-col lg:justify-start lg:gap-2 lg:border-r lg:border-t-0 lg:px-2 lg:py-3 lg:shadow-[inset_-1px_0_0_rgba(255,255,255,0.06),10px_0_36px_rgba(0,0,0,0.3)]">
@@ -30,7 +34,6 @@ if(!Cookies.get("user")) {
       >
         Eg
       </Link>
-router.push("/login")
       {items.map((item) => {
         const Icon = item.icon;
         const active =

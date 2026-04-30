@@ -1,35 +1,37 @@
-import { bytes } from "stream/consumers";
 import connectDB from "../../../lib/mongoose";
 
-import User  from "../../../models/User";
-
-import { writeFile } from "fs/promises";
-import { arrayBuffer } from "stream/consumers";
-import path from "path";
 import { NextResponse } from "next/server";
+import {
+  DEFAULT_MEDIA_MAX_BYTES,
+  mediaErrorResponse,
+  storeUploadedFile,
+} from "../../../lib/mediaStorage";
 
-export async function POST(req){
+export async function POST(req) {
+  try {
+    const formData = await req.formData();
 
-  
-    const formData=  await req.formData()
-    
-    await connectDB()
-  
-  const file=formData.get("file")
-  const userId=formData.get("userId")
-       const bytes = await file.arrayBuffer();
+    await connectDB();
 
-  const buffers= Buffer(bytes)
-  const filename=`${Date.now()}${ Math.random().toString(36).substring(2)}${file.name}`
-  const filepath=path.join(process.cwd(),"/public/media/"+filename)
+    const file = formData.get("file");
+    const userId = formData.get("userId");
 
+    const { url: mediaUrl } = await storeUploadedFile(file, {
+      bucket: "chat",
+      owner: userId,
+      allowedTypes: [
+        "image/",
+        "video/",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+      ],
+      maxBytes: DEFAULT_MEDIA_MAX_BYTES,
+    });
 
- 
-   await writeFile(filepath,buffers)
-  const mediaUrl="/media/"+filename
- await User.findOneAndUpdate({_id:userId},{$push:{media:mediaUrl}},{new:true})
-
- return NextResponse.json({media:mediaUrl})
-
-   
+    return NextResponse.json({ media: mediaUrl });
+  } catch (error) {
+    return mediaErrorResponse(error, NextResponse);
+  }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Cookies from "js-cookie";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -13,13 +14,49 @@ import {
   Megaphone,
 } from "lucide-react";
 import Sidebar from "./components/Sidebar";
-import ChatWindow from "./components/Chatbar";
 import axios from "axios";
-import CreateGroup from "./components/CreateGroup";
-import StatusViewer from "./components/StatusViewer";
-import { socket } from "./socket";
 import { useRouter } from "next/navigation";
 const filters = ["All", "Unread", "Groups", "Channels"];
+
+let socketPromise;
+
+function loadSocket() {
+  if (!socketPromise) {
+    socketPromise = import("./socket").then((module) => module.socket);
+  }
+
+  return socketPromise;
+}
+
+const ChatWindow = dynamic(() => import("./components/Chatbar"), {
+  loading: () => (
+    <div className="flex h-full items-center justify-center px-6 text-slate-400">
+      <div className="app-panel-muted rounded-lg px-6 py-5 text-center">
+        Loading chat...
+      </div>
+    </div>
+  ),
+});
+
+const CreateGroup = dynamic(() => import("./components/CreateGroup"), {
+  ssr: false,
+});
+
+const StatusViewer = dynamic(() => import("./components/StatusViewer"), {
+  ssr: false,
+});
+
+function runWhenIdle(callback) {
+  if (typeof window === "undefined") return undefined;
+
+  if ("requestIdleCallback" in window) {
+    const id = window.requestIdleCallback(callback, { timeout: 2000 });
+    return () => window.cancelIdleCallback(id);
+  }
+
+  const id = window.setTimeout(callback, 1);
+  return () => window.clearTimeout(id);
+}
 
 function getCurrentUser() {
   try {
@@ -93,6 +130,7 @@ const router = useRouter();
   const [typingUser, setTypingUser] = useState(null);
 
   const inputref = useRef(null);
+  const socketRef = useRef(null);
   const currentUser = getCurrentUser();
   const groupedStatus = groupStatusByUser(status);
 
@@ -267,7 +305,7 @@ const router = useRouter();
 
       if (createdMessage) {
         addMessageOnce(createdMessage);
-        socket.emit("message", createdMessage);
+        socketRef.current?.emit("message", createdMessage);
       }
 
       if (reply) {
@@ -335,12 +373,14 @@ const router = useRouter();
       try {
         setLoading(true);
 
-        const res = await fetch("/api/users", { cache: "no-store" });
+        const [res, groupRes] = await Promise.all([
+          fetch("/api/users", { cache: "no-store" }),
+          axios.get("/api/groups"),
+        ]);
 
         if (!res.ok) throw new Error("Failed to fetch users");
 
         const data = await res.json();
-        const groupRes = await axios.get("/api/groups");
 
         const combined = [
           ...(Array.isArray(data) ? data : []),
@@ -356,47 +396,71 @@ const router = useRouter();
       }
     }
 
-    getUnreadMessages();
-    getStatus();
     getUsers();
+
+    return runWhenIdle(() => {
+      getUnreadMessages();
+      getStatus();
+    });
   }, []);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
     if (!currentUser?.username) return;
 
-    function handleConnect() {
-      socket.emit("user", currentUser.username);
-    }
+    let mounted = true;
+    let cleanup = () => {};
 
-    function handlePresence(data) {
-      if (!data?.username) return;
+    const cancelIdle = runWhenIdle(() => {
+      loadSocket().then((socket) => {
+        if (!mounted) return;
 
-      const presencePatch = {
-        status: Boolean(data.status),
-        displayname: data.displayname || (data.status ? "online" : "offline"),
-      };
+        socketRef.current = socket;
 
-      setUsers((prev) =>
-        prev.map((user) =>
-          user?.username === data.username ? { ...user, ...presencePatch } : user
-        )
-      );
+        function handleConnect() {
+          socket.emit("user", currentUser.username);
+        }
 
-      setSelectedUser((prev) =>
-        prev?.username === data.username ? { ...prev, ...presencePatch } : prev
-      );
-    }
+        function handlePresence(data) {
+          if (!data?.username) return;
 
-    socket.on("connect", handleConnect);
-    socket.on("presence", handlePresence);
+          const presencePatch = {
+            status: Boolean(data.status),
+            displayname: data.displayname || (data.status ? "online" : "offline"),
+          };
 
-    if (socket.connected) handleConnect();
-    else socket.connect();
+          setUsers((prev) =>
+            prev.map((user) =>
+              user?.username === data.username
+                ? { ...user, ...presencePatch }
+                : user
+            )
+          );
+
+          setSelectedUser((prev) =>
+            prev?.username === data.username
+              ? { ...prev, ...presencePatch }
+              : prev
+          );
+        }
+
+        socket.on("connect", handleConnect);
+        socket.on("presence", handlePresence);
+
+        if (socket.connected) handleConnect();
+        else socket.connect();
+
+        cleanup = () => {
+          socket.off("connect", handleConnect);
+          socket.off("presence", handlePresence);
+        };
+      });
+    });
 
     return () => {
-      socket.off("connect", handleConnect);
-      socket.off("presence", handlePresence);
+      mounted = false;
+      cancelIdle?.();
+      cleanup();
     };
   }, []);
 
@@ -404,41 +468,62 @@ const router = useRouter();
     const currentUser = getCurrentUser();
     if (!currentUser?.username) return;
 
-    function handleNewMessage(message) {
-      if (!message) return;
+    let mounted = true;
+    let cleanup = () => {};
 
-      if (isMessageForCurrentChat(message, selectedUser)) {
-        addMessageOnce(message);
-        if (selectedUser) markMessagesRead(selectedUser);
-        return;
-      }
+    const cancelIdle = runWhenIdle(() => {
+      loadSocket().then((socket) => {
+        if (!mounted) return;
 
-      setread((prev) => {
-        const exists = prev.some(
-          (item) =>
-            (message._id && item._id === message._id) ||
-            (message.clientId && item.clientId === message.clientId) ||
-            (message.tempId && item.tempId === message.tempId)
-        );
+        socketRef.current = socket;
 
-        if (exists) return prev;
-        return [...prev, message];
+        function handleNewMessage(message) {
+          if (!message) return;
+
+          if (isMessageForCurrentChat(message, selectedUser)) {
+            addMessageOnce(message);
+            if (selectedUser) markMessagesRead(selectedUser);
+            return;
+          }
+
+          setread((prev) => {
+            const exists = prev.some(
+              (item) =>
+                (message._id && item._id === message._id) ||
+                (message.clientId && item.clientId === message.clientId) ||
+                (message.tempId && item.tempId === message.tempId)
+            );
+
+            if (exists) return prev;
+            return [...prev, message];
+          });
+        }
+
+        socket.on("message", handleNewMessage);
+        socket.on("receive-message", handleNewMessage);
+        socket.on("new-message", handleNewMessage);
+
+        cleanup = () => {
+          socket.off("message", handleNewMessage);
+          socket.off("receive-message", handleNewMessage);
+          socket.off("new-message", handleNewMessage);
+        };
       });
-    }
-
-    socket.on("message", handleNewMessage);
-    socket.on("receive-message", handleNewMessage);
-    socket.on("new-message", handleNewMessage);
+    });
 
     return () => {
-      socket.off("message", handleNewMessage);
-      socket.off("receive-message", handleNewMessage);
-      socket.off("new-message", handleNewMessage);
+      mounted = false;
+      cancelIdle?.();
+      cleanup();
     };
   }, [selectedUser]);
 
   useEffect(() => {
+    if (!selectedUser) return;
+
     let timer;
+    let mounted = true;
+    let cleanup = () => {};
 
     function handleTyping(data) {
       if (!selectedUser) return;
@@ -463,13 +548,26 @@ const router = useRouter();
       if (sender === chatName) setTypingUser(null);
     }
 
-    socket.on("typing", handleTyping);
-    socket.on("stop-typing", handleStopTyping);
+    const cancelIdle = runWhenIdle(() => {
+      loadSocket().then((socket) => {
+        if (!mounted) return;
+
+        socketRef.current = socket;
+        socket.on("typing", handleTyping);
+        socket.on("stop-typing", handleStopTyping);
+
+        cleanup = () => {
+          socket.off("typing", handleTyping);
+          socket.off("stop-typing", handleStopTyping);
+        };
+      });
+    });
 
     return () => {
+      mounted = false;
+      cancelIdle?.();
       clearTimeout(timer);
-      socket.off("typing", handleTyping);
-      socket.off("stop-typing", handleStopTyping);
+      cleanup();
     };
   }, [selectedUser]);
 
@@ -753,7 +851,7 @@ if(currentUser.username==userName) {return false }
           </div>
         </div>
 
-        <CreateGroup open={open} close={() => setopen(false)} />
+        {open && <CreateGroup open={open} close={() => setopen(false)} />}
       </aside>
 
       {activeStatus && (

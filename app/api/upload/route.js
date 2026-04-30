@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import connectDB from "../../../lib/mongoose";
 import User from "../../../models/User"
-import { writeFile } from "fs/promises";
-import path from "path";
+import {
+  AVATAR_MAX_BYTES,
+  mediaErrorResponse,
+  storeUploadedFile,
+} from "../../../lib/mediaStorage";
 
 export async function POST(req) {
   try {
@@ -36,24 +39,12 @@ export async function POST(req) {
       );
     }
 
-    // ✅ buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // ✅ اسم unique قوي
-    const fileName = `${Date.now()}-${Math.random()
-      .toString(36)
-      .substring(2)}-${file.name}`;
-
-    const filePath = path.join(
-      process.cwd(),
-      "public/uploads",
-      fileName
-    );
-
-    await writeFile(filePath, buffer);
-
-    const imageUrl = `/uploads/${fileName}`;
+    const { url: imageUrl } = await storeUploadedFile(file, {
+      bucket: "avatar",
+      owner: user_id,
+      allowedTypes: ["image/"],
+      maxBytes: AVATAR_MAX_BYTES,
+    });
 
     // ✅ update بدل create
 
@@ -70,9 +61,6 @@ export async function POST(req) {
       user,
     });
   } catch (error) {
-    return NextResponse.json(
-      { message: "Error", error: error.message },
-      { status: 500 }
-    );
+    return mediaErrorResponse(error, NextResponse);
   }
 }

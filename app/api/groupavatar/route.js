@@ -2,25 +2,32 @@
 import { NextResponse } from "next/server";
 import connectDB from "../../../lib/mongoose"
 import Group from "../../../models/Group"
-import { writeFile } from "fs/promises";
-import path from "path";
-export async function POST(req){
+import {
+  AVATAR_MAX_BYTES,
+  mediaErrorResponse,
+  storeUploadedFile,
+} from "../../../lib/mediaStorage";
+export async function POST(req) {
+  try {
+    const formdata = await req.formData();
+    await connectDB();
 
-const formdata = await req.formData()
-     await connectDB()
+    const file = formdata.get("file");
+    const name = formdata.get("name");
+    const { url: fileurl } = await storeUploadedFile(file, {
+      bucket: "group-avatar",
+      allowedTypes: ["image/"],
+      maxBytes: AVATAR_MAX_BYTES,
+    });
 
-const file=formdata.get("file")
-const  name=formdata.get("name")  
-const bytes=await file.arrayBuffer()
-const  buffer=Buffer(bytes)  
-  const filename=`${Date.now()}${ Math.random().toString(36).substring(2)}${file.name}`
-  const filepath=path.join(process.cwd(),"/public/group/"+filename)
-   await writeFile(filepath,buffer)
-const fileurl = "/group/" + filename;
+    const group = await Group.findOneAndUpdate(
+      { name },
+      { avatar: fileurl },
+      { new: true }
+    );
 
-const  group=await Group.findOneAndUpdate({name:name},{avatar:fileurl})
-
-return NextResponse.json({group:group,avatar:fileurl},)
-
-
+    return NextResponse.json({ group, avatar: fileurl });
+  } catch (error) {
+    return mediaErrorResponse(error, NextResponse);
+  }
 }

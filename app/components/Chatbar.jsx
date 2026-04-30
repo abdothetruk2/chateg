@@ -50,7 +50,7 @@ export default function ChatWindow({ selectedUser, selectedMessages = [] }) {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const groupAvatarInputRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
+  const typingTimeoutRef = useRef({});
   const lastTypingTimeRef = useRef(0);
 
   const currentUser = useMemo(() => {
@@ -219,7 +219,7 @@ export default function ChatWindow({ selectedUser, selectedMessages = [] }) {
 
     const now = Date.now();
 
-    if (now - lastTypingTimeRef.current < 700) return;
+    if (now - lastTypingTimeRef.current < 250) return;
     lastTypingTimeRef.current = now;
 
     const isGroup = selectedUser?.type === "group";
@@ -490,7 +490,7 @@ useEffect(() => {
   setTypingUsers({});
   setSelectedPresence(Boolean(selectedUser?.status));
   setGroupInfo(selectedUser?.type === "group" ? selectedUser : null);
-}, [selectedMessages, selectedUser?._id]);
+}, [selectedMessages, selectedUser]);
 
   useEffect(() => {
     function onConnect() {
@@ -552,15 +552,15 @@ useEffect(() => {
         [data.sender]: true,
       }));
 
-      clearTimeout(typingTimeoutRef.current);
+      clearTimeout(typingTimeoutRef.current[data.sender]);
 
-      typingTimeoutRef.current = setTimeout(() => {
+      typingTimeoutRef.current[data.sender] = setTimeout(() => {
         setTypingUsers((prev) => {
           const copy = { ...prev };
           delete copy[data.sender];
           return copy;
         });
-      }, 1500);
+      }, 950);
     }
 
     function onPresence(data) {
@@ -586,7 +586,8 @@ useEffect(() => {
       socket.off("message", onMessage);
       socket.off("typing", onTyping);
       socket.off("presence", onPresence);
-      clearTimeout(typingTimeoutRef.current);
+      Object.values(typingTimeoutRef.current).forEach(clearTimeout);
+      typingTimeoutRef.current = {};
     };
   }, [selectedUser, currentUser, appendMessageIfNotExists]);
 
@@ -664,6 +665,7 @@ useEffect(() => {
     }
   }
   const typingNames = Object.keys(typingUsers);
+  const isComposing = message.length > 0;
   const selectedIsOnline = Boolean(selectedPresence);
   const selectedPresenceLabel =
     selectedUser?.type === "group"
@@ -706,7 +708,11 @@ useEffect(() => {
                 <div>
                   <h3 className="font-semibold">{selectedChatName}</h3>
 
-                  <p className="text-sm text-slate-400">
+                  <p
+                    className={`text-sm ${
+                      typingNames.length > 0 ? "text-cyan-200" : "text-slate-400"
+                    }`}
+                  >
                     {typingNames.length > 0
                       ? `${typingNames.join(", ")} typing...`
                       : selectedPresenceLabel}
@@ -906,15 +912,15 @@ useEffect(() => {
                     />
                   </div>
 
-                  <div className="rounded-lg rounded-bl-sm bg-white/10 px-4 py-3">
+                  <div className="typing-bubble rounded-lg rounded-bl-sm bg-white/10 px-4 py-3">
                     <div className="mb-1 text-xs text-slate-400">
                       {typingNames.join(", ")} typing
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-300" />
-                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-300 [animation-delay:150ms]" />
-                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-300 [animation-delay:300ms]" />
+                      <span className="typing-dot h-2 w-2 rounded-full bg-cyan-200" />
+                      <span className="typing-dot h-2 w-2 rounded-full bg-cyan-200 [animation-delay:90ms]" />
+                      <span className="typing-dot h-2 w-2 rounded-full bg-cyan-200 [animation-delay:180ms]" />
                     </div>
                   </div>
                 </div>
@@ -990,7 +996,20 @@ useEffect(() => {
             <VoiceRecorder onSend={sendVoice }/>
 
             </div>
-              <div className="focus-within:border-cyan-300/35 flex flex-1 items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 transition">
+              <div
+                className={`focus-within:border-cyan-300/35 relative flex flex-1 items-center gap-3 overflow-hidden rounded-lg border border-white/10 bg-white/5 px-4 py-3 transition ${
+                  isComposing
+                    ? "typing-compose-active border-cyan-300/45 bg-cyan-300/10 shadow-[0_0_28px_rgba(34,211,238,0.16)]"
+                    : ""
+                }`}
+              >
+                {isComposing && (
+                  <>
+                    <span className="typing-spark typing-spark-one" aria-hidden="true" />
+                    <span className="typing-spark typing-spark-two" aria-hidden="true" />
+                    <span className="typing-spark typing-spark-three" aria-hidden="true" />
+                  </>
+                )}
                 <button
                   className="text-slate-400 transition hover:text-white"
                   type="button"
@@ -1026,7 +1045,9 @@ useEffect(() => {
 
               <button
                 onClick={send}
-                className="rounded-lg bg-cyan-300 p-3 text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`rounded-lg bg-cyan-300 p-3 text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  message.trim() || mediaUrl ? "send-ready" : ""
+                }`}
                 disabled={(!message.trim() && !mediaUrl) || uploading}
                 type="button"
               >

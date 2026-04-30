@@ -20,13 +20,19 @@ export default function CallModal({
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
+  const startCallTimeoutRef = useRef(null);
 
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(callType === "video");
   const [status, setStatus] = useState("Ready");
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
 
   const myName = currentUser?.username;
   const friendName = selectedUser?.username || incomingCall?.from;
+  const callStatus =
+    incomingCall && status === "Ready"
+      ? `${incomingCall.from} is calling...`
+      : status;
 
   async function getMedia(type = "video") {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -49,6 +55,7 @@ export default function CallModal({
     peer.ontrack = (event) => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
+        setHasRemoteVideo(true);
       }
     };
 
@@ -134,6 +141,7 @@ export default function CallModal({
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    setHasRemoteVideo(false);
   }
 
   function toggleMic() {
@@ -194,11 +202,14 @@ export default function CallModal({
     if (!open) return;
 
     if (incomingCall) {
-      setStatus(`${incomingCall.from} is calling...`);
       return;
     }
 
-    startCall();
+    startCallTimeoutRef.current = setTimeout(() => {
+      startCall();
+    }, 0);
+
+    return () => clearTimeout(startCallTimeoutRef.current);
   }, [open]);
 
   if (!open) return null;
@@ -211,7 +222,7 @@ export default function CallModal({
             <h2 className="text-lg font-bold text-white">
               {friendName || "Call"}
             </h2>
-            <p className="text-sm text-slate-400">{status}</p>
+            <p className="text-sm text-slate-400">{callStatus}</p>
           </div>
 
           {incomingCall && (
@@ -233,7 +244,7 @@ export default function CallModal({
               className="h-full w-full object-cover"
             />
 
-            {!remoteVideoRef.current?.srcObject && (
+            {!hasRemoteVideo && (
               <div className="absolute inset-0 flex items-center justify-center text-slate-500">
                 Waiting for remote video...
               </div>
