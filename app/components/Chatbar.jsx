@@ -33,7 +33,83 @@ function getEntityId(entity) {
   return entity._id?.toString?.() || entity.toString?.() || "";
 }
 
-export default function ChatWindow({ selectedUser, selectedMessages = [] }) {
+function getMessageDbId(message) {
+  return String(message?._id || message?.id || "");
+}
+
+function messagesMatch(message, incomingMessage) {
+  const messageDbId = getMessageDbId(message);
+  const incomingDbId = getMessageDbId(incomingMessage);
+
+  return (
+    (incomingMessage?.clientId && message?.clientId === incomingMessage.clientId) ||
+    (incomingDbId && messageDbId === incomingDbId) ||
+    (incomingMessage?.tempId && message?.tempId === incomingMessage.tempId)
+  );
+}
+
+function mergeMessage(message = {}, incomingMessage = {}) {
+  return {
+    ...message,
+    ...incomingMessage,
+    pending:
+      typeof incomingMessage.pending === "boolean"
+        ? incomingMessage.pending
+        : Boolean(message.pending),
+    failed:
+      typeof incomingMessage.failed === "boolean"
+        ? incomingMessage.failed
+        : Boolean(message.failed),
+  };
+}
+
+function upsertMessageList(list = [], incomingMessage) {
+  if (!incomingMessage) return list;
+
+  const index = list.findIndex((message) =>
+    messagesMatch(message, incomingMessage)
+  );
+
+  if (index === -1) {
+    return [...list, mergeMessage({}, incomingMessage)];
+  }
+
+  const next = [...list];
+  next[index] = mergeMessage(next[index], incomingMessage);
+  return next;
+}
+
+function isMessageInChat(message, chat, currentUsername) {
+  if (!message || !chat || !currentUsername) return false;
+
+  const chatName =
+    chat.type === "group" ? chat.name : chat.username || chat.name || "";
+
+  if (!chatName) return false;
+
+  if (chat.type === "group") {
+    return (
+      message.type === "group" &&
+      (message.chat === chatName ||
+        message.receiver === chatName ||
+        message.recname === chatName)
+    );
+  }
+
+  const sender = message.sender || message.username || "";
+  const receiver = message.receiver || message.recname || "";
+
+  return (
+    (sender === currentUsername && receiver === chatName) ||
+    (sender === chatName && receiver === currentUsername)
+  );
+}
+
+export default function ChatWindow({
+  selectedUser,
+  selectedMessages = [],
+  setMessages: setParentMessages,
+}) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
@@ -302,65 +378,32 @@ export default function ChatWindow({ selectedUser, selectedMessages = [] }) {
       console.error("Remove group member failed:", error);
     }
   }
-const getMessageId = (msg) => {
-  return String(msg?._id || msg?.id || msg?.clientId || "");
-};
+  const upsertParentMessage = useCallback(
+    (incomingMessage) => {
+      if (
+        typeof setParentMessages !== "function" ||
+        !isMessageInChat(incomingMessage, selectedUser, currentUser?.username)
+      ) {
+        return;
+      }
 
-const upsertMessage = useCallback((incomingMessage) => {
-  if (!incomingMessage) return;
+      setParentMessages((prev) => upsertMessageList(prev, incomingMessage));
+    },
+    [currentUser?.username, selectedUser, setParentMessages]
+  );
 
-  setMessages((prev) => {
-    const incomingClientId = incomingMessage.clientId;
-    const incomingDbId = incomingMessage._id || incomingMessage.id;
+  const upsertMessage = useCallback(
+    (incomingMessage, options = {}) => {
+      if (!incomingMessage) return;
 
-    const index = prev.findIndex((msg) => {
-      const msgClientId = msg.clientId;
-      const msgDbId = msg._id || msg.id;
+      setMessages((prev) => upsertMessageList(prev, incomingMessage));
 
-      return (
-        (incomingClientId && msgClientId === incomingClientId) ||
-        (incomingDbId && String(msgDbId) === String(incomingDbId))
-      );
-    });
-
-    if (index !== -1) {
-      const next = [...prev];
-      next[index] = {
-        ...prev[index],
-        ...incomingMessage,
-        pending: false,
-        failed: false,
-      };
-      return next;
-    }
-
-    return [
-      ...prev,
-      {
-        ...incomingMessage,
-        pending: false,
-        failed: false,
-      },
-    ];
-  });
-}, [setMessages]);
-  const appendMessageIfNotExists = useCallback((incomingMessage) => {
-    setMessages((prev) => {
-      const exists = prev.some(
-        (msg) =>
-          msg.clientId === incomingMessage.clientId ||
-          msg.id === incomingMessage.id ||
-          (msg.sender === incomingMessage.sender &&
-            msg.receiver === incomingMessage.receiver &&
-            msg.message === incomingMessage.message &&
-            msg.media === incomingMessage.media &&
-            msg.type === incomingMessage.type)
-      );
-
-      if (exists) return prev;
-      return [...prev, incomingMessage];
-    });
-  }, []);
+      if (options.syncParent) {
+        upsertParentMessage(incomingMessage);
+      }
+    },
+    [upsertParentMessage]
+  );
 
  async function send() {
   if (!currentUser || !selectedUser) return;
@@ -409,7 +452,7 @@ const upsertMessage = useCallback((incomingMessage) => {
     clearMedia();
 
     // show message instantly
-    upsertMessage(newMessage);
+    upsertMessage(newMessage, { syncParent: true });
 
     if (isGroup) {
       socket.emit("group", {
@@ -431,24 +474,20 @@ const upsertMessage = useCallback((incomingMessage) => {
     };
 
     // replace pending message with saved message
-    upsertMessage(finalMessage);
+    upsertMessage(finalMessage, { syncParent: true });
 
     // emit saved message with _id
     socket.emit("message", finalMessage);
   } catch (error) {
     console.error("Send failed:", error);
 
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.clientId === clientId
-          ? {
-              ...msg,
-              pending: false,
-              failed: true,
-            }
-          : msg
-      )
-    );
+    const failedMessage = {
+      ...newMessage,
+      pending: false,
+      failed: true,
+    };
+
+    upsertMessage(failedMessage, { syncParent: true });
   }
 }
 
@@ -469,17 +508,12 @@ useEffect(() => {
     const merged = [...incoming];
 
     prev.forEach((oldMsg) => {
-      const exists = merged.some((newMsg) => {
-        return (
-          (oldMsg._id && newMsg._id && String(oldMsg._id) === String(newMsg._id)) ||
-          (oldMsg.id && newMsg.id && String(oldMsg.id) === String(newMsg.id)) ||
-          (oldMsg.clientId &&
-            newMsg.clientId &&
-            String(oldMsg.clientId) === String(newMsg.clientId))
-        );
-      });
+      const exists = merged.some((newMsg) => messagesMatch(newMsg, oldMsg));
+      const shouldPreserveLocalState =
+        (oldMsg.pending || oldMsg.failed) &&
+        isMessageInChat(oldMsg, selectedUser, currentUser?.username);
 
-      if (!exists && (oldMsg.pending || oldMsg.failed)) {
+      if (!exists && shouldPreserveLocalState) {
         merged.push(oldMsg);
       }
     });
@@ -490,7 +524,7 @@ useEffect(() => {
   setTypingUsers({});
   setSelectedPresence(Boolean(selectedUser?.status));
   setGroupInfo(selectedUser?.type === "group" ? selectedUser : null);
-}, [selectedMessages, selectedUser]);
+}, [currentUser?.username, selectedMessages, selectedUser]);
 
   useEffect(() => {
     function onConnect() {
@@ -503,6 +537,7 @@ useEffect(() => {
       if (!data) return;
 
       const normalizedMessage = {
+        _id: data._id,
         clientId: data.clientId,
         id: data.id || data._id || `${data.sender}-${Date.now()}`,
         sender: data.sender || data.username,
@@ -514,6 +549,9 @@ useEffect(() => {
         type: data.type || "user",
         chat: data.chat || "",
         storyReply: data.storyReply || null,
+        createdAt: data.createdAt,
+        pending: false,
+        failed: false,
       };
 
       const isCurrentChatGroup =
@@ -529,7 +567,7 @@ useEffect(() => {
             normalizedMessage.receiver === currentUser?.username));
 
       if (isCurrentChatGroup || isCurrentPrivateChat) {
-        appendMessageIfNotExists(normalizedMessage);
+        upsertMessage(normalizedMessage, { syncParent: true });
       }
 
     }
@@ -589,7 +627,7 @@ useEffect(() => {
       Object.values(typingTimeoutRef.current).forEach(clearTimeout);
       typingTimeoutRef.current = {};
     };
-  }, [selectedUser, currentUser, appendMessageIfNotExists]);
+  }, [selectedUser, currentUser, upsertMessage]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -657,8 +695,11 @@ useEffect(() => {
 
       const data = await res.json();
       newMessage.media = data.url;
+      newMessage.createdAt = new Date().toISOString();
+      newMessage.pending = false;
+      newMessage.failed = false;
 
-      appendMessageIfNotExists(newMessage);
+      upsertMessage(newMessage, { syncParent: true });
       socket.emit("message", newMessage);
     } catch (error) {
       console.error("Voice send failed:", error);
