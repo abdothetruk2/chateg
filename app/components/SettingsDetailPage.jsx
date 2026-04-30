@@ -24,6 +24,11 @@ import {
   Users,
   Volume2,
 } from "lucide-react";
+import {
+  getClientPreferences,
+  playNotificationSound,
+  saveClientPreferences,
+} from "../../lib/clientPreferences";
 
 const pageConfig = {
   notifications: {
@@ -251,16 +256,38 @@ export default function SettingsDetailPage({ type }) {
         values[item.id] = item.enabled;
       }
     }
+
+    if (type === "notifications") {
+      const preferences = getClientPreferences();
+      values.messageSounds = preferences.messageSounds;
+      values.callRingtone = preferences.callRingtone;
+    }
+
     return values;
-  }, [config]);
+  }, [config, type]);
 
   const [toggles, setToggles] = useState(initialToggles);
 
   function toggleItem(id) {
-    setToggles((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+    setToggles((prev) => {
+      const nextValue = !prev[id];
+      const next = {
+        ...prev,
+        [id]: nextValue,
+      };
+
+      saveClientPreferences({ [id]: nextValue });
+
+      if (nextValue && id === "messageSounds") {
+        playNotificationSound("message");
+      }
+
+      if (nextValue && id === "callRingtone") {
+        playNotificationSound("call");
+      }
+
+      return next;
+    });
   }
 
   return (

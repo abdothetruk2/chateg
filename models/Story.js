@@ -13,6 +13,11 @@ const StorySchema = new mongoose.Schema(
       required: true,
     },
 
+    mediaType: {
+      type: String,
+      default: "",
+    },
+
     caption: {
       type: String,
       default: "",

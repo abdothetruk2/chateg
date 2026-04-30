@@ -29,6 +29,7 @@ export default function CallModal({
 
   const myName = currentUser?.username;
   const friendName = selectedUser?.username || incomingCall?.from;
+  const activeCallType = incomingCall?.callType || callType;
   const callStatus =
     incomingCall && status === "Ready"
       ? `${incomingCall.from} is calling...`
@@ -77,8 +78,9 @@ export default function CallModal({
     if (!socket || !myName || !friendName) return;
 
     setStatus("Calling...");
+    setCamOn(activeCallType === "video");
 
-    const stream = await getMedia(callType);
+    const stream = await getMedia(activeCallType);
     const peer = createPeer();
 
     stream.getTracks().forEach((track) => {
@@ -92,7 +94,7 @@ export default function CallModal({
       from: myName,
       to: friendName,
       offer,
-      callType,
+      callType: activeCallType,
     });
   }
 
@@ -100,6 +102,7 @@ export default function CallModal({
     if (!socket || !incomingCall) return;
 
     setStatus("Connected");
+    setCamOn((incomingCall.callType || "video") === "video");
 
     const stream = await getMedia(incomingCall.callType || "video");
     const peer = createPeer();
@@ -276,7 +279,7 @@ export default function CallModal({
             {micOn ? <Mic size={22} /> : <MicOff size={22} />}
           </button>
 
-          {callType === "video" && (
+          {activeCallType === "video" && (
             <button
               onClick={toggleCamera}
               className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"

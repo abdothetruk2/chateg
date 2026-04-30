@@ -18,9 +18,17 @@ import {
   Ban,
   Cloud,
   Check,
+  BellRing,
+  Volume2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
+import {
+  applyThemePreferences,
+  getClientPreferences,
+  playNotificationSound,
+  saveClientPreferences,
+} from "../../lib/clientPreferences";
 
 export default function ProfileSettingsPage() {
   const inputRef = useRef(null);
@@ -40,14 +48,17 @@ export default function ProfileSettingsPage() {
   const [user, setUser] = useState(cookieUser);
   const [previewUrl, setPreviewUrl] = useState(cookieUser?.avatar || "/avatar.jpg");
   const [selectedFile, setSelectedFile] = useState(null);
+  const initialPreferences = getClientPreferences(cookieUser);
 
   const [form, setForm] = useState({
     displayName: cookieUser?.username || "",
     username: cookieUser?.username || "",
     about: "Hey there! I am using EgChat. 🚀",
     email: cookieUser?.email || "",
-    themeMode: "light",
-    themeColor: "Emerald",
+    themeMode: initialPreferences.themeMode,
+    themeColor: initialPreferences.themeColor,
+    messageSounds: initialPreferences.messageSounds,
+    callRingtone: initialPreferences.callRingtone,
   });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -73,6 +84,10 @@ export default function ProfileSettingsPage() {
           username: fetchedUser.username || "",
           email: fetchedUser.email || "",
           about: fetchedUser.about || prev.about,
+          themeMode: getClientPreferences(fetchedUser).themeMode,
+          themeColor: getClientPreferences(fetchedUser).themeColor,
+          messageSounds: getClientPreferences(fetchedUser).messageSounds,
+          callRingtone: getClientPreferences(fetchedUser).callRingtone,
         }));
       } catch (err) {
         console.error("Failed to fetch user:", err);
@@ -89,6 +104,14 @@ export default function ProfileSettingsPage() {
       }
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    applyThemePreferences({
+      ...getClientPreferences(user),
+      themeMode: form.themeMode,
+      themeColor: form.themeColor,
+    });
+  }, [form.themeColor, form.themeMode, user]);
 
   function handleInputChange(e) {
     const { name, value } = e.target;
@@ -186,6 +209,8 @@ export default function ProfileSettingsPage() {
         about: form.about,
         themeMode: form.themeMode,
         themeColor: form.themeColor,
+        messageSounds: form.messageSounds,
+        callRingtone: form.callRingtone,
       };
 
       const { data } = await axios.put("/api/updateuser", payload);
@@ -196,9 +221,25 @@ export default function ProfileSettingsPage() {
         about: data?.user?.about || form.about,
         avatar: data?.user?.avatar || user.avatar,
         email: data?.user?.email || user.email,
+        themeMode: data?.user?.themeMode || form.themeMode,
+        themeColor: data?.user?.themeColor || form.themeColor,
+        messageSounds:
+          typeof data?.user?.messageSounds === "boolean"
+            ? data.user.messageSounds
+            : form.messageSounds,
+        callRingtone:
+          typeof data?.user?.callRingtone === "boolean"
+            ? data.user.callRingtone
+            : form.callRingtone,
       };
 
       setUser(updatedUser);
+      saveClientPreferences({
+        themeMode: updatedUser.themeMode,
+        themeColor: updatedUser.themeColor,
+        messageSounds: updatedUser.messageSounds,
+        callRingtone: updatedUser.callRingtone,
+      });
       Cookies.set("user", JSON.stringify(updatedUser));
       setMessage(data?.message || "Profile updated successfully.");
     } catch (err) {
@@ -213,14 +254,17 @@ export default function ProfileSettingsPage() {
     setPreviewUrl(user?.avatar || "/avatar.jpg");
     setError("");
     setMessage("");
+    const preferences = getClientPreferences(user);
 
     setForm({
       displayName: user?.username || "",
       username: user?.username || "",
       about: user?.about || "Hey there! I am using EgChat. 🚀",
       email: user?.email || "",
-      themeMode: "light",
-      themeColor: "Emerald",
+      themeMode: preferences.themeMode,
+      themeColor: preferences.themeColor,
+      messageSounds: preferences.messageSounds,
+      callRingtone: preferences.callRingtone,
     });
 
     if (inputRef.current) {
@@ -229,7 +273,7 @@ export default function ProfileSettingsPage() {
   }
 
   const themeColors = [
-    { name: "Emerald", color: "bg-cyan-400" },
+    { name: "Emerald", color: "bg-emerald-500" },
     { name: "Blue", color: "bg-blue-500" },
     { name: "Purple", color: "bg-violet-500" },
     { name: "Rose", color: "bg-rose-500" },
@@ -472,6 +516,81 @@ export default function ProfileSettingsPage() {
             </div>
 
             <div className="flex flex-col gap-6">
+              <div className="rounded-lg border border-white/10 bg-white/[0.045] p-6 shadow-sm">
+                <h3 className="mb-5 flex items-center gap-2 text-lg font-bold text-white">
+                  <BellRing className="h-5 w-5 text-cyan-400" />
+                  Notifications
+                </h3>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-4 rounded-xl bg-black/15 p-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-400">
+                        <Volume2 className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white">
+                          Smooth message sound
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Play a soft tone for new messages.
+                        </p>
+                      </div>
+                    </div>
+                    <label className="relative ml-2 inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={form.messageSounds}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setForm((prev) => ({
+                            ...prev,
+                            messageSounds: checked,
+                          }));
+                          saveClientPreferences({ messageSounds: checked });
+                          if (checked) playNotificationSound("message");
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="h-6 w-10 rounded-full bg-white/10 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-cyan-400 peer-checked:after:translate-x-full" />
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 rounded-xl bg-black/15 p-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+                        <BellRing className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white">
+                          Call ringtone
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Ring for incoming voice and video calls.
+                        </p>
+                      </div>
+                    </div>
+                    <label className="relative ml-2 inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={form.callRingtone}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setForm((prev) => ({
+                            ...prev,
+                            callRingtone: checked,
+                          }));
+                          saveClientPreferences({ callRingtone: checked });
+                          if (checked) playNotificationSound("call");
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="h-6 w-10 rounded-full bg-white/10 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-cyan-400 peer-checked:after:translate-x-full" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <div className="rounded-lg border border-white/10 bg-white/[0.045] p-6 shadow-sm">
                 <h3 className="mb-5 flex items-center gap-2 text-lg font-bold text-white">
                   <Shield className="h-5 w-5 text-cyan-400" />

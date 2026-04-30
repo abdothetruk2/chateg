@@ -16,7 +16,7 @@ export async function POST(req) {
     const file = formData.get("file");
     const userId = formData.get("userId");
 
-    const { url: mediaUrl } = await storeUploadedFile(file, {
+    const { file: storedFile, url: mediaUrl } = await storeUploadedFile(file, {
       bucket: "chat",
       owner: userId,
       allowedTypes: [
@@ -30,7 +30,10 @@ export async function POST(req) {
       maxBytes: DEFAULT_MEDIA_MAX_BYTES,
     });
 
-    return NextResponse.json({ media: mediaUrl });
+    return NextResponse.json({
+      media: mediaUrl,
+      mediaType: storedFile.contentType || file.type || "",
+    });
   } catch (error) {
     return mediaErrorResponse(error, NextResponse);
   }

@@ -11,6 +11,7 @@ export async function POST(req) {
     const story = await Story.create({
       user: body.userId, // 👈 صح
       mediaUrl: body.mediaUrl,
+      mediaType: typeof body.mediaType === "string" ? body.mediaType : "",
       caption: typeof body.caption === "string" ? body.caption.trim() : "",
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });

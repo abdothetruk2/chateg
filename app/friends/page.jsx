@@ -64,6 +64,16 @@ function groupStatusByUser(list = []) {
   }));
 }
 
+function isVideoStatus(statusItem) {
+  const mediaType = String(statusItem?.mediaType || "").toLowerCase();
+  const mediaUrl = String(statusItem?.mediaUrl || "").toLowerCase();
+
+  return (
+    mediaType.startsWith("video/") ||
+    /\.(mp4|webm|ogg|mov)$/i.test(mediaUrl)
+  );
+}
+
 export default function FriendsPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [users, setUsers] = useState([]);
@@ -216,11 +226,13 @@ export default function FriendsPage() {
       });
 
       const mediaUrl = uploadRes.data?.mediaUrl;
+      const mediaType = uploadRes.data?.mediaType || file.type || "";
       if (!mediaUrl) throw new Error("No mediaUrl returned");
 
       const createRes = await axios.post("/api/story", {
         userId: currentUser._id,
         mediaUrl,
+        mediaType,
         caption: "",
       });
 
@@ -340,13 +352,22 @@ export default function FriendsPage() {
               >
                 <div className="rounded-full bg-gradient-to-tr from-pink-500 via-violet-500 to-sky-500 p-[2px]">
                   <div className="relative h-14 w-14 overflow-hidden rounded-full bg-[#0b1220] p-[2px]">
-                    <Image
-                      src={statusItem.mediaUrl || "/avatar.jpg"}
-                      alt={statusItem.user?.username || "status"}
-                      fill
-                      className="rounded-full object-cover"
-                      sizes="56px"
-                    />
+                    {isVideoStatus(statusItem) ? (
+                      <video
+                        src={statusItem.mediaUrl}
+                        className="h-full w-full rounded-full object-cover"
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={statusItem.mediaUrl || "/avatar.jpg"}
+                        alt={statusItem.user?.username || "status"}
+                        fill
+                        className="rounded-full object-cover"
+                        sizes="56px"
+                      />
+                    )}
                   </div>
                 </div>
 

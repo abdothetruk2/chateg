@@ -6,7 +6,15 @@ import User from "../../../models/User";
 export async function PUT(req) {
   try {
     const body = await req.json();
-    const { user_id, username, about } = body;
+    const {
+      user_id,
+      username,
+      about,
+      themeMode,
+      themeColor,
+      messageSounds,
+      callRingtone,
+    } = body;
 
     if (!user_id || !mongoose.Types.ObjectId.isValid(user_id)) {
       return NextResponse.json(
@@ -23,6 +31,22 @@ export async function PUT(req) {
 
     if (typeof about === "string") {
       update.about = about.trim();
+    }
+
+    if (["light", "dark", "system"].includes(themeMode)) {
+      update.themeMode = themeMode;
+    }
+
+    if (typeof themeColor === "string" && themeColor.trim()) {
+      update.themeColor = themeColor.trim();
+    }
+
+    if (typeof messageSounds === "boolean") {
+      update.messageSounds = messageSounds;
+    }
+
+    if (typeof callRingtone === "boolean") {
+      update.callRingtone = callRingtone;
     }
 
     await connectDB();

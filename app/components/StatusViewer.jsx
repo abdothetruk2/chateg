@@ -6,6 +6,16 @@ import { X, Send } from "lucide-react";
 
 const STORY_DURATION = 5000;
 
+function isVideoStory(story) {
+  const mediaType = String(story?.mediaType || "").toLowerCase();
+  const mediaUrl = String(story?.mediaUrl || "").toLowerCase();
+
+  return (
+    mediaType.startsWith("video/") ||
+    /\.(mp4|webm|ogg|mov)$/i.test(mediaUrl)
+  );
+}
+
 export default function StatusViewer({
   status,
   currentUser,
@@ -26,6 +36,7 @@ export default function StatusViewer({
   }, [status]);
 
   const currentStory = stories[index] || null;
+  const isVideo = isVideoStory(currentStory);
 
   const isOwnStatus =
     String(currentStory?.user?._id || "") === String(currentUser?._id || "");
@@ -98,13 +109,24 @@ export default function StatusViewer({
       </button>
 
       <div className="relative h-[80vh] w-full max-w-[400px] overflow-hidden rounded-2xl bg-black">
-        <Image
-          src={currentStory.mediaUrl || "/avatar.jpg"}
-          alt="status"
-          fill
-          priority
-          className="object-cover"
-        />
+        {isVideo ? (
+          <video
+            src={currentStory.mediaUrl}
+            autoPlay
+            muted
+            playsInline
+            controls
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Image
+            src={currentStory.mediaUrl || "/avatar.jpg"}
+            alt="status"
+            fill
+            priority
+            className="object-cover"
+          />
+        )}
 
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/85" />
 

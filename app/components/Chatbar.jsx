@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import VoiceRecorder from "./VoiceRecorder";
+import CallModal from "./CallModal";
 import { socket } from "../socket";
 import Cookies from "js-cookie";
 import Image from "next/image";
 import axios from "axios";
+import { playNotificationSound } from "../../lib/clientPreferences";
 import {
   ArrowLeft,
   Video,
@@ -109,11 +111,13 @@ export default function ChatWindow({
   selectedUser,
   selectedMessages = [],
   setMessages: setParentMessages,
+  notifyOnIncoming = true,
 }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
   const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaType, setMediaType] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -122,6 +126,10 @@ export default function ChatWindow({
   const [selectedPresence, setSelectedPresence] = useState(
     Boolean(selectedUser?.status)
   );
+  const [callOpen, setCallOpen] = useState(false);
+  const [callType, setCallType] = useState("video");
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [callPeer, setCallPeer] = useState(null);
     
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -219,6 +227,13 @@ export default function ChatWindow({
     }
 
     if (
+      value.startsWith("audio/") ||
+      /\.(mp3|m4a|wav|ogg|webm)$/i.test(value)
+    ) {
+      return "audio";
+    }
+
+    if (
       value.includes("application/pdf") ||
       value.includes("application/msword") ||
       value.includes(
@@ -235,11 +250,14 @@ export default function ChatWindow({
   const sharedMedia = useMemo(
     () =>
       messages
-        .filter((msg) => msg.media && getFileType(msg.media) !== "unknown")
+        .filter(
+          (msg) =>
+            msg.media && getFileType(msg.mediaType || msg.media) !== "unknown"
+        )
         .map((msg, index) => ({
           id: msg.clientId || msg.id || `${msg.media}-${index}`,
           url: getFullMediaUrl(msg.media),
-          type: getFileType(msg.media),
+          type: getFileType(msg.mediaType || msg.media),
           sender: msg.sender || msg.username || "",
           name: msg.media?.split("/").pop() || "Shared file",
         })),
@@ -256,6 +274,7 @@ export default function ChatWindow({
 
     setSelectedFile(null);
     setMediaUrl("");
+    setMediaType("");
     setPreviewUrl("");
 
     if (inputRef.current) inputRef.current.value = "";
@@ -269,6 +288,7 @@ export default function ChatWindow({
       if (previewUrl) URL.revokeObjectURL(previewUrl);
 
       setSelectedFile(file);
+      setMediaType(file.type || "");
       setPreviewUrl(URL.createObjectURL(file));
 
       const formData = new FormData();
@@ -282,6 +302,7 @@ export default function ChatWindow({
       });
 
       setMediaUrl(res.data.media || "");
+      setMediaType(res.data.mediaType || file.type || "");
     } catch (error) {
       console.error("Upload failed:", error);
       clearMedia();
@@ -405,6 +426,21 @@ export default function ChatWindow({
     [upsertParentMessage]
   );
 
+  function openChatCall(type) {
+    if (!selectedUser || selectedUser?.type === "group") return;
+
+    setIncomingCall(null);
+    setCallPeer(selectedUser);
+    setCallType(type);
+    setCallOpen(true);
+  }
+
+  function closeChatCall() {
+    setCallOpen(false);
+    setIncomingCall(null);
+    setCallPeer(null);
+  }
+
  async function send() {
   if (!currentUser || !selectedUser) return;
   if (!message.trim() && !mediaUrl) return;
@@ -412,6 +448,7 @@ export default function ChatWindow({
 
   const text = message.trim();
   const media = mediaUrl || "";
+  const attachedMediaType = mediaType || selectedFile?.type || "";
 
   const isGroup = selectedUser?.type === "group";
 
@@ -437,6 +474,7 @@ export default function ChatWindow({
 
     message: text,
     media,
+    mediaType: attachedMediaType,
 
     unread: 1,
     type: isGroup ? "group" : "user",
@@ -546,6 +584,7 @@ useEffect(() => {
         recname: data.recname || data.receiver || data.chat || "",
         message: data.message || "",
         media: data.media || "",
+        mediaType: data.mediaType || "",
         type: data.type || "user",
         chat: data.chat || "",
         storyReply: data.storyReply || null,
@@ -568,8 +607,26 @@ useEffect(() => {
 
       if (isCurrentChatGroup || isCurrentPrivateChat) {
         upsertMessage(normalizedMessage, { syncParent: true });
+
+        if (notifyOnIncoming && normalizedMessage.sender !== currentUser?.username) {
+          playNotificationSound("message");
+        }
       }
 
+    }
+
+    function onIncomingCall(data) {
+      if (!data?.from || data?.from === currentUser?.username) return;
+
+      playNotificationSound("call");
+      setIncomingCall(data);
+      setCallType(data.callType || "video");
+      setCallPeer(
+        selectedUser?.username === data.from
+          ? selectedUser
+          : { username: data.from, avatar: "/avatar.jpg" }
+      );
+      setCallOpen(true);
     }
 
     function onTyping(data) {
@@ -610,6 +667,7 @@ useEffect(() => {
 
     socket.on("connect", onConnect);
     socket.on("message", onMessage);
+    socket.on("incoming-call", onIncomingCall);
     socket.on("typing", onTyping);
     socket.on("presence", onPresence);
 
@@ -622,12 +680,13 @@ useEffect(() => {
     return () => {
       socket.off("connect", onConnect);
       socket.off("message", onMessage);
+      socket.off("incoming-call", onIncomingCall);
       socket.off("typing", onTyping);
       socket.off("presence", onPresence);
       Object.values(typingTimeoutRef.current).forEach(clearTimeout);
       typingTimeoutRef.current = {};
     };
-  }, [selectedUser, currentUser, upsertMessage]);
+  }, [selectedUser, currentUser, notifyOnIncoming, upsertMessage]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -695,6 +754,7 @@ useEffect(() => {
 
       const data = await res.json();
       newMessage.media = data.url;
+      newMessage.mediaType = data.mediaType || blob.type || "audio/webm";
       newMessage.createdAt = new Date().toISOString();
       newMessage.pending = false;
       newMessage.failed = false;
@@ -763,10 +823,30 @@ useEffect(() => {
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="hidden rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 sm:flex">
+              <button
+                className="hidden rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
+                type="button"
+                title={
+                  selectedUser?.type === "group"
+                    ? "Calls are available for direct chats"
+                    : "Video call"
+                }
+                disabled={selectedUser?.type === "group"}
+                onClick={() => openChatCall("video")}
+              >
                 <Video className="h-5 w-5" />
               </button>
-              <button className="hidden rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 sm:flex">
+              <button
+                className="hidden rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
+                type="button"
+                title={
+                  selectedUser?.type === "group"
+                    ? "Calls are available for direct chats"
+                    : "Voice call"
+                }
+                disabled={selectedUser?.type === "group"}
+                onClick={() => openChatCall("audio")}
+              >
                 <Phone className="h-5 w-5" />
               </button>
               <button className="rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10">
@@ -828,8 +908,11 @@ useEffect(() => {
               {messages.map((msg, index) => {
                 const isMe =
                   (msg.sender || msg.username) === currentUser?.username;
-                const mediaType = getFileType(msg.media);
+                const mediaType = getFileType(msg.mediaType || msg.media);
                 const mediaSrc = getFullMediaUrl(msg.media);
+                const storyReplyType = getFileType(
+                  msg.storyReply?.mediaType || msg.storyReply?.mediaUrl
+                );
 
                 return (
                   <div
@@ -874,13 +957,22 @@ useEffect(() => {
                           >
                             <div className="flex items-center gap-3 p-2.5">
                               <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-black/30">
-                                <Image
-                                  src={msg.storyReply.mediaUrl || "/avatar.jpg"}
-                                  alt="status reply"
-                                  fill
-                                  sizes="40px"
-                                  className="object-cover"
-                                />
+                                {storyReplyType === "video" ? (
+                                  <video
+                                    src={msg.storyReply.mediaUrl}
+                                    className="h-full w-full object-cover"
+                                    muted
+                                    playsInline
+                                  />
+                                ) : (
+                                  <Image
+                                    src={msg.storyReply.mediaUrl || "/avatar.jpg"}
+                                    alt="status reply"
+                                    fill
+                                    sizes="40px"
+                                    className="object-cover"
+                                  />
+                                )}
                               </div>
                               <div className="min-w-0">
                                 <p className="text-xs font-bold uppercase opacity-80">
@@ -916,6 +1008,14 @@ useEffect(() => {
                               className="max-h-[260px] w-full rounded-lg"
                             />
                           </div>
+                        )}
+
+                        {msg.media && mediaType === "audio" && (
+                          <audio
+                            src={mediaSrc}
+                            controls
+                            className="mb-3 w-full min-w-[220px]"
+                          />
                         )}
 
                         {msg.media && mediaType === "file" && (
@@ -1342,6 +1442,15 @@ useEffect(() => {
         </aside>
         )}
       </div>
+      <CallModal
+        open={callOpen}
+        onClose={closeChatCall}
+        socket={socket}
+        currentUser={currentUser}
+        selectedUser={callPeer || selectedUser}
+        incomingCall={incomingCall}
+        callType={callType}
+      />
     </div>
   );
 }

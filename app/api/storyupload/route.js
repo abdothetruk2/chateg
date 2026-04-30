@@ -12,14 +12,17 @@ export async function POST(req) {
 
     const file = body.get("file");
     const userId = body.get("user_id");
-    const { url: mediaUrl } = await storeUploadedFile(file, {
+    const { file: storedFile, url: mediaUrl } = await storeUploadedFile(file, {
       bucket: "story",
       owner: userId,
       allowedTypes: ["image/", "video/"],
       maxBytes: DEFAULT_MEDIA_MAX_BYTES,
     });
 
-    return NextResponse.json({ mediaUrl });
+    return NextResponse.json({
+      mediaUrl,
+      mediaType: storedFile.contentType || file.type || "",
+    });
   } catch (error) {
     return mediaErrorResponse(error, NextResponse);
   }

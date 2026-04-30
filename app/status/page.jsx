@@ -37,6 +37,16 @@ function timeAgo(date) {
   return `${days} days ago`;
 }
 
+function isVideoStatus(statusItem) {
+  const mediaType = String(statusItem?.mediaType || "").toLowerCase();
+  const mediaUrl = String(statusItem?.mediaUrl || "").toLowerCase();
+
+  return (
+    mediaType.startsWith("video/") ||
+    /\.(mp4|webm|ogg|mov)$/i.test(mediaUrl)
+  );
+}
+
 function groupStoriesByUser(stories) {
   const map = new Map();
 
@@ -74,6 +84,7 @@ export default function StatusSidebar() {
 
   const [user, setUser] = useState(null);
   const [preview, setPreview] = useState("/avatar.jpg");
+  const [previewType, setPreviewType] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [stories, setStories] = useState([]);
   const [selectedStory, setSelectedStory] = useState(null);
@@ -86,6 +97,7 @@ export default function StatusSidebar() {
     const currentUser = getCurrentUser();
     setUser(currentUser);
     setPreview(currentUser?.avatar || "/avatar.jpg");
+    setPreviewType("");
 
     if (currentUser?.username) {
       if (!socket.connected) socket.connect();
@@ -171,6 +183,7 @@ export default function StatusSidebar() {
 
     const localPreview = URL.createObjectURL(file);
     setPreview(localPreview);
+    setPreviewType(file.type || "");
 
     try {
       setIsUploading(true);
@@ -186,6 +199,7 @@ export default function StatusSidebar() {
       });
 
       const mediaUrl = uploadRes.data?.mediaUrl;
+      const mediaType = uploadRes.data?.mediaType || file.type || "";
 
       if (!mediaUrl) {
         throw new Error("Upload failed: no media url returned");
@@ -194,17 +208,20 @@ export default function StatusSidebar() {
       const createRes = await axios.post("/api/story", {
         userId: user._id,
         mediaUrl,
+        mediaType,
         caption: "",
       });
 
       const newStory = createRes.data;
 
       setPreview(mediaUrl);
+      setPreviewType(mediaType);
       setStories((prev) => [newStory, ...prev]);
       setSelectedStory(newStory);
     } catch (error) {
       console.error("Upload error:", error);
       setPreview(user?.avatar || "/avatar.jpg");
+      setPreviewType("");
     } finally {
       setIsUploading(false);
       e.target.value = "";
@@ -297,11 +314,20 @@ export default function StatusSidebar() {
                 onChange={handleFileChange}
               />
 
-              <img
-                className="size-14 rounded-full border-2 border-cyan-300 object-cover p-0.5"
-                alt={user?.username || "me"}
-                src={preview}
-              />
+              {previewType.startsWith("video/") ? (
+                <video
+                  className="size-14 rounded-full border-2 border-cyan-300 object-cover p-0.5"
+                  src={preview}
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img
+                  className="size-14 rounded-full border-2 border-cyan-300 object-cover p-0.5"
+                  alt={user?.username || "me"}
+                  src={preview}
+                />
+              )}
 
               <div className="absolute bottom-0 right-0 flex size-6 items-center justify-center rounded-full border-2 border-[#0f172a] bg-cyan-300 text-slate-950">
                 <Plus className="h-3.5 w-3.5" />
@@ -372,13 +398,22 @@ export default function StatusSidebar() {
                   }`}
                 >
                   <div className="rounded-full border-2 border-cyan-300 p-0.5">
-                    <Image
-                      className="size-12 rounded-full object-cover"
-                      alt={story?.user?.username || "user"}
-                      src={story?.user?.avatar || "/avatar.jpg"}
-                      width={48}
-                      height={48}
-                    />
+                    {isVideoStatus(story) ? (
+                      <video
+                        className="size-12 rounded-full object-cover"
+                        src={story.mediaUrl}
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        className="size-12 rounded-full object-cover"
+                        alt={story?.user?.username || "user"}
+                        src={story?.mediaUrl || story?.user?.avatar || "/avatar.jpg"}
+                        width={48}
+                        height={48}
+                      />
+                    )}
                   </div>
 
                   <div className="min-w-0 flex-1">

@@ -11,9 +11,12 @@ function formatStoryTime(date) {
   return new Date(date).toLocaleString();
 }
 
-function isVideoUrl(mediaUrl = "") {
-  const value = mediaUrl.toLowerCase();
+function isVideoStory(story) {
+  const mediaType = String(story?.mediaType || "").toLowerCase();
+  const value = String(story?.mediaUrl || "").toLowerCase();
+
   return (
+    mediaType.startsWith("video/") ||
     value.endsWith(".mp4") ||
     value.endsWith(".webm") ||
     value.endsWith(".ogg") ||
@@ -115,7 +118,7 @@ export default function StatusCard({
   }
 
   const mediaUrl = story?.mediaUrl || "";
-  const isVideo = isVideoUrl(mediaUrl);
+  const isVideo = isVideoStory(story);
   const replyCount = story?.replies?.length || 0;
 
   return (

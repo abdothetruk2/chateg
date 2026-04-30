@@ -75,6 +75,7 @@ export async function POST(req) {
       storyReply: {
         storyId: story._id,
         mediaUrl: story.mediaUrl,
+        mediaType: story.mediaType || "",
         caption: story.caption || "",
         owner: owner.username,
       },

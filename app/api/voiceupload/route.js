@@ -15,7 +15,7 @@ export async function POST(req) {
     const sender = formData.get("sender");
     const receiver = formData.get("receiver");
     const avatar = formData.get("avatar");
-    const { url: fileurl } = await storeUploadedFile(file, {
+    const { file: storedFile, url: fileurl } = await storeUploadedFile(file, {
       bucket: "voice",
       allowedTypes: ["audio/", "video/webm", "video/mp4"],
       maxBytes: DEFAULT_MEDIA_MAX_BYTES,
@@ -25,11 +25,13 @@ export async function POST(req) {
       sender,
       receiver,
       media: fileurl,
+      mediaType: storedFile.contentType || file.type || "",
       avatar,
     });
 
     return NextResponse.json({
       url: fileurl,
+      mediaType: storedFile.contentType || file.type || "",
     });
   } catch (error) {
     return mediaErrorResponse(error, NextResponse);

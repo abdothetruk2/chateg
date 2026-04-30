@@ -19,6 +19,7 @@ import {
 import Sidebar from "../components/Sidebar";
 import CallModal from "../components/CallModal";
 import {socket }from "../socket";
+import { playNotificationSound } from "../../lib/clientPreferences";
 
 export default function CallsPage() {
   const [selected, setSelected] = useState(null);
@@ -70,6 +71,7 @@ export default function CallsPage() {
 
   useEffect(() => {
     function handleIncomingCall(data) {
+      playNotificationSound("call");
       setIncomingCall(data);
       setCallType(data?.callType || "video");
 

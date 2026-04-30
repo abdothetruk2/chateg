@@ -42,6 +42,23 @@ const UserSchema = new mongoose.Schema(
       default:"hey i am uses nexus"
 
     },
+    themeMode: {
+      type: String,
+      enum: ["light", "dark", "system"],
+      default: "dark",
+    },
+    themeColor: {
+      type: String,
+      default: "Cyan",
+    },
+    messageSounds: {
+      type: Boolean,
+      default: true,
+    },
+    callRingtone: {
+      type: Boolean,
+      default: true,
+    },
      socketId:{
    
       type: String,

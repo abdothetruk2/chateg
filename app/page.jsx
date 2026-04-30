@@ -16,6 +16,7 @@ import {
 import Sidebar from "./components/Sidebar";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { playNotificationSound } from "../lib/clientPreferences";
 const filters = ["All", "Unread", "Groups", "Channels"];
 
 let socketPromise;
@@ -77,6 +78,16 @@ function getChatName(user) {
 
 function getChatId(user) {
   return String(user?._id || user?.username || user?.name || "");
+}
+
+function isVideoStatus(statusItem) {
+  const mediaType = String(statusItem?.mediaType || "").toLowerCase();
+  const mediaUrl = String(statusItem?.mediaUrl || "").toLowerCase();
+
+  return (
+    mediaType.startsWith("video/") ||
+    /\.(mp4|webm|ogg|mov)$/i.test(mediaUrl)
+  );
 }
 
 function groupStatusByUser(statusList) {
@@ -257,6 +268,7 @@ const router = useRouter();
       });
 
       const mediaUrl = uploadRes.data?.mediaUrl;
+      const mediaType = uploadRes.data?.mediaType || file.type || "";
 
       if (!mediaUrl) {
         throw new Error("Upload failed: no media url returned");
@@ -265,6 +277,7 @@ const router = useRouter();
       const createRes = await axios.post("/api/story", {
         userId: currentUser._id,
         mediaUrl,
+        mediaType,
         caption: "",
       });
 
@@ -480,6 +493,10 @@ const router = useRouter();
         function handleNewMessage(message) {
           if (!message) return;
 
+          if (message.sender !== currentUser.username) {
+            playNotificationSound("message");
+          }
+
           if (isMessageForCurrentChat(message, selectedUser)) {
             addMessageOnce(message);
             if (selectedUser) markMessagesRead(selectedUser);
@@ -670,13 +687,22 @@ if(currentUser.username==userName) {return false }
                   }`}
                 >
                   <div className="relative h-14 w-14 overflow-hidden rounded-full bg-[#0b1220] p-[2px]">
-                    <Image
-                      src={statusItem.mediaUrl || "/avatar.jpg"}
-                      alt={statusItem.user?.username || "status"}
-                      fill
-                      className="rounded-full object-cover"
-                      sizes="56px"
-                    />
+                    {isVideoStatus(statusItem) ? (
+                      <video
+                        src={statusItem.mediaUrl}
+                        className="h-full w-full rounded-full object-cover"
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={statusItem.mediaUrl || "/avatar.jpg"}
+                        alt={statusItem.user?.username || "status"}
+                        fill
+                        className="rounded-full object-cover"
+                        sizes="56px"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -876,6 +902,7 @@ if(currentUser.username==userName) {return false }
               setMessages={setMessages}
               currentUser={currentUser}
               typingUser={typingUser}
+              notifyOnIncoming={false}
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-slate-400">

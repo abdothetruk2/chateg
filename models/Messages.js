@@ -8,6 +8,7 @@ const MessageSchema = new mongoose.Schema(
     chat: { type: String, default: "" },
     message: { type: String, default: "" },
     media: { type: String, default: "" },
+    mediaType: { type: String, default: "" },
     read:{type:Boolean,default:false},
     type: {
       type: String,
@@ -19,6 +20,7 @@ const MessageSchema = new mongoose.Schema(
     storyReply: {
       storyId: { type: mongoose.Schema.Types.ObjectId, ref: "Story" },
       mediaUrl: { type: String, default: "" },
+      mediaType: { type: String, default: "" },
       caption: { type: String, default: "" },
       owner: { type: String, default: "" },
     },
