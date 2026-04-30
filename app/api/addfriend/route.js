@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { userId, friendId } = body;
+    const { userId, friendId, action = "request" } = body;
 
     await connectDB();
 
@@ -44,27 +44,67 @@ export async function POST(req) {
       );
     }
 
-    const alreadyFriend = user.friends?.some(
-      (id) => id.toString() === friendId
-    );
+    const alreadyFriend = user.friends?.some((id) => id.toString() === friendId);
 
     if (alreadyFriend) {
       return NextResponse.json(
-        { message: "Already friends" },
-        { status: 400 }
+        { message: "Already friends", status: "friends" },
+        { status: 200 }
       );
     }
 
-    await User.findByIdAndUpdate(userId, {
-      $addToSet: { friends: friendId },
-    });
+    if (action === "decline") {
+      await User.findByIdAndUpdate(userId, {
+        $pull: { friendRequests: friendId },
+      });
 
-    await User.findByIdAndUpdate(friendId, {
-      $addToSet: { friends: userId },
-    });
+      await User.findByIdAndUpdate(friendId, {
+        $pull: { sentFriendRequests: userId },
+      });
+
+      return NextResponse.json(
+        { message: "Friend request declined", status: "none" },
+        { status: 200 }
+      );
+    }
+
+    const hasIncomingRequest = user.friendRequests?.some(
+      (id) => id.toString() === friendId
+    );
+
+    if (action === "accept" || hasIncomingRequest) {
+      await User.findByIdAndUpdate(userId, {
+        $addToSet: { friends: friendId },
+        $pull: { friendRequests: friendId, sentFriendRequests: friendId },
+      });
+
+      await User.findByIdAndUpdate(friendId, {
+        $addToSet: { friends: userId },
+        $pull: { friendRequests: userId, sentFriendRequests: userId },
+      });
+
+      return NextResponse.json(
+        { message: "Friend request accepted", status: "friends" },
+        { status: 200 }
+      );
+    }
+
+    const requestAlreadySent = friend.friendRequests?.some(
+      (id) => id.toString() === userId
+    );
+
+    if (!requestAlreadySent) {
+      await User.findByIdAndUpdate(userId, {
+        $addToSet: { sentFriendRequests: friendId },
+      });
+
+      await User.findByIdAndUpdate(friendId, {
+        $addToSet: { friendRequests: userId },
+      });
+    }
 
     return NextResponse.json(
-      { message: "Friend added successfully" },
+      { message: "Friend request sent", status: "pending" },
       { status: 200 }
     );
   } catch (error) {

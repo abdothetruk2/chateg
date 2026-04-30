@@ -9,10 +9,10 @@ export async function POST(req) {
     await connectDB();
 
  
-    const user = await User.findById(body._id).populate(
-      "friends",
-      "-password"
-    );
+    const user = await User.findById(body._id)
+      .populate("friends", "-password")
+      .populate("friendRequests", "-password")
+      .populate("sentFriendRequests", "-password");
 
     if (!user) {
       return NextResponse.json(
@@ -22,7 +22,11 @@ export async function POST(req) {
     }
 
     return NextResponse.json(
-      { friends: user.friends },
+      {
+        friends: user.friends,
+        friendRequests: user.friendRequests || [],
+        sentFriendRequests: user.sentFriendRequests || [],
+      },
       { status: 200 }
     );
   } catch (error) {

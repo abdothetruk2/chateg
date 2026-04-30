@@ -69,10 +69,21 @@ const UserSchema = new mongoose.Schema(
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-    } 
+    }
+  ],
+  friendRequests: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    }
+  ],
+  sentFriendRequests: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    }
   ],
 
-  
 },
 
 {timestamps: true}

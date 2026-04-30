@@ -3,12 +3,20 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { CircleAlert, MessageSquare, Phone, Settings, Users } from "lucide-react";
+import {
+  CircleAlert,
+  MessageSquare,
+  Newspaper,
+  Phone,
+  Settings,
+  Users,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "../../lib/utils";
 import Cookies from "js-cookie";
 const items = [
   { name: "Messages", icon: MessageSquare, href: "/" },
+  { name: "Posts", icon: Newspaper, href: "/posts" },
   { name: "Contacts", icon: Users, href: "/friends" },
   { name: "Calls", icon: Phone, href: "/calls" },
   { name: "Status", icon: CircleAlert, href: "/status" },

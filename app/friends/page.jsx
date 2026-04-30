@@ -84,6 +84,8 @@ export default function FriendsPage() {
   const [status, setStatus] = useState([]);
   const [activeStatus, setActiveStatus] = useState(null);
   const [read, setread] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [sentFriendRequests, setSentFriendRequests] = useState([]);
   const [open, setopen] = useState(false);
 
   const inputref = useRef(null);
@@ -147,11 +149,23 @@ export default function FriendsPage() {
           : [];
 
         setUsers(friends);
+        setFriendRequests(
+          Array.isArray(friendsRes.data?.friendRequests)
+            ? friendsRes.data.friendRequests
+            : []
+        );
+        setSentFriendRequests(
+          Array.isArray(friendsRes.data?.sentFriendRequests)
+            ? friendsRes.data.sentFriendRequests
+            : []
+        );
         setStatus(Array.isArray(storyRes.data) ? storyRes.data : []);
         setread(Array.isArray(unreadRes.data?.unread) ? unreadRes.data.unread : []);
       } catch (error) {
         console.error("Friends page load error:", error);
-        setUsers([]);
+      setUsers([]);
+      setFriendRequests([]);
+      setSentFriendRequests([]);
       } finally {
         setLoading(false);
       }
@@ -209,6 +223,31 @@ export default function FriendsPage() {
       );
     } catch (error) {
       console.error("markRead error:", error);
+    }
+  }
+
+  async function respondFriendRequest(user, action) {
+    try {
+      if (!currentUser?._id || !user?._id) return;
+
+      const res = await axios.post("/api/addfriend", {
+        userId: currentUser._id,
+        friendId: user._id,
+        action,
+      });
+
+      setFriendRequests((prev) =>
+        prev.filter((item) => item._id !== user._id)
+      );
+
+      if (res.data?.status === "friends") {
+        setUsers((prev) => {
+          const exists = prev.some((item) => item._id === user._id);
+          return exists ? prev : [user, ...prev];
+        });
+      }
+    } catch (error) {
+      console.error("Friend request response failed:", error);
     }
   }
 
@@ -412,7 +451,82 @@ export default function FriendsPage() {
           </button>
         </div>
 
-        <div className="thin-scrollbar flex-1 space-y-2 overflow-y-auto px-4 pb-4">
+        <div className="thin-scrollbar flex-1 space-y-3 overflow-y-auto px-4 pb-4">
+          {friendRequests.length > 0 && (
+            <section className="space-y-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-cyan-100">
+                  Friend Requests
+                </h3>
+                <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs text-cyan-100">
+                  {friendRequests.length}
+                </span>
+              </div>
+
+              {friendRequests.map((requestUser) => (
+                <div
+                  key={requestUser._id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-black/15 p-2"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                      <Image
+                        src={requestUser?.avatar || "/avatar.jpg"}
+                        alt={requestUser?.username || "Friend request"}
+                        fill
+                        className="object-cover"
+                        sizes="40px"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {requestUser?.username}
+                      </p>
+                      <p className="truncate text-xs text-slate-400">
+                        {requestUser?.about || "Wants to be friends"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => respondFriendRequest(requestUser, "accept")}
+                      className="rounded-lg bg-cyan-300 px-3 py-1.5 text-xs font-bold text-slate-950 transition hover:bg-cyan-200"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => respondFriendRequest(requestUser, "decline")}
+                      className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold text-slate-300 transition hover:bg-white/15"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {sentFriendRequests.length > 0 && (
+            <section className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
+              <p className="text-xs font-bold uppercase tracking-[1.5px] text-slate-400">
+                Sent requests
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {sentFriendRequests.slice(0, 6).map((requestUser) => (
+                  <span
+                    key={requestUser._id}
+                    className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-300"
+                  >
+                    {requestUser?.username}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
           {loading ? (
             <div className="app-panel-muted rounded-lg p-4 text-sm text-slate-300">
               Loading friends...

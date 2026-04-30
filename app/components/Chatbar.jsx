@@ -35,6 +35,42 @@ function getEntityId(entity) {
   return entity._id?.toString?.() || entity.toString?.() || "";
 }
 
+function listHasEntity(list = [], id = "") {
+  return Boolean(id) && list.some((item) => getEntityId(item) === id);
+}
+
+function getFriendshipStatus(currentUser, selectedUser) {
+  if (!currentUser?._id || !selectedUser?._id || selectedUser?.type === "group") {
+    return "none";
+  }
+
+  const currentUserId = getEntityId(currentUser);
+  const selectedUserId = getEntityId(selectedUser);
+
+  if (
+    listHasEntity(currentUser.friends, selectedUserId) ||
+    listHasEntity(selectedUser.friends, currentUserId)
+  ) {
+    return "friends";
+  }
+
+  if (
+    listHasEntity(currentUser.friendRequests, selectedUserId) ||
+    listHasEntity(selectedUser.sentFriendRequests, currentUserId)
+  ) {
+    return "incoming";
+  }
+
+  if (
+    listHasEntity(currentUser.sentFriendRequests, selectedUserId) ||
+    listHasEntity(selectedUser.friendRequests, currentUserId)
+  ) {
+    return "pending";
+  }
+
+  return "none";
+}
+
 function getMessageDbId(message) {
   return String(message?._id || message?.id || "");
 }
@@ -130,6 +166,8 @@ export default function ChatWindow({
   const [callType, setCallType] = useState("video");
   const [incomingCall, setIncomingCall] = useState(null);
   const [callPeer, setCallPeer] = useState(null);
+  const [friendshipOverride, setFriendshipOverride] = useState("");
+  const [friendshipMessage, setFriendshipMessage] = useState("");
     
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -166,6 +204,12 @@ export default function ChatWindow({
       (member) => getEntityId(member) === currentUserId
     );
   const selectedChat = activeGroup || selectedUser;
+  const friendshipStatus =
+    friendshipOverride || getFriendshipStatus(currentUser, selectedUser);
+  const profileBio =
+    selectedUser?.type === "group"
+      ? selectedUser?.message || "Group chat"
+      : selectedUser?.about || "No bio yet.";
   
   async function groupavatar(e) {
     try {
@@ -334,12 +378,21 @@ export default function ChatWindow({
     try {
       if (!currentUser?._id || !selectedUser?._id) return;
 
-      await axios.post("/api/addfriend", {
+      const action = friendshipStatus === "incoming" ? "accept" : "request";
+
+      const res = await axios.post("/api/addfriend", {
         userId: currentUser._id,
         friendId: selectedUser._id,
+        action,
       });
+
+      setFriendshipOverride(res.data?.status || "pending");
+      setFriendshipMessage(res.data?.message || "Friend request sent");
     } catch (error) {
       console.error("Add friend failed:", error);
+      setFriendshipMessage(
+        error?.response?.data?.message || "Could not update friend request"
+      );
     }
   }
 
@@ -538,6 +591,11 @@ export default function ChatWindow({
       socket.connect();
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    setFriendshipOverride("");
+    setFriendshipMessage("");
+  }, [selectedUser?._id]);
 
 useEffect(() => {
   setMessages((prev) => {
@@ -1235,8 +1293,8 @@ useEffect(() => {
                 <BadgeCheck className="h-5 w-5 text-sky-400" />
               </h2>
 
-              <p className="mt-1 text-sm text-slate-400">
-                Contact profile and shared media.
+              <p className="mx-auto mt-2 max-w-[240px] whitespace-pre-wrap text-sm leading-5 text-slate-400">
+                {profileBio}
               </p>
             </div>
 
@@ -1373,12 +1431,27 @@ useEffect(() => {
             )}
 
             {selectedUser?.type !== "group" && (
-              <button
-                onClick={addFriend}
-                className="mt-5 flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2 font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-200"
-              >
-                Add Friend
-              </button>
+              <div className="mt-5 space-y-2">
+                <button
+                  onClick={addFriend}
+                  disabled={friendshipStatus === "friends" || friendshipStatus === "pending"}
+                  className="flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2 font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-slate-400"
+                  type="button"
+                >
+                  {friendshipStatus === "friends" && <Check className="h-4 w-4" />}
+                  {friendshipStatus !== "friends" && <UserPlus className="h-4 w-4" />}
+                  {friendshipStatus === "friends"
+                    ? "Friends"
+                    : friendshipStatus === "pending"
+                    ? "Request Sent"
+                    : friendshipStatus === "incoming"
+                    ? "Accept Friend Request"
+                    : "Add Friend"}
+                </button>
+                {friendshipMessage && (
+                  <p className="text-xs text-slate-400">{friendshipMessage}</p>
+                )}
+              </div>
             )}
 
             {selectedUser?.type === "group" && (

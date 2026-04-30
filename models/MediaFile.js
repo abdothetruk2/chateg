@@ -23,7 +23,7 @@ const MediaFileSchema = new mongoose.Schema(
     },
     bucket: {
       type: String,
-      enum: ["avatar", "chat", "story", "group-avatar", "voice"],
+      enum: ["avatar", "chat", "story", "group-avatar", "voice", "post"],
       default: "chat",
     },
     owner: {
