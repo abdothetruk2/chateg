@@ -17,6 +17,13 @@ const MessageSchema = new mongoose.Schema(
     },
     avatar: { type: String, default: "" },
     clientId: { type: String, default: "" },
+    reactions: [
+      {
+        user: { type: String, required: true },
+        emoji: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     storyReply: {
       storyId: { type: mongoose.Schema.Types.ObjectId, ref: "Story" },
       mediaUrl: { type: String, default: "" },

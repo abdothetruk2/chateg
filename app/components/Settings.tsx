@@ -20,6 +20,10 @@ import {
   Check,
   BellRing,
   Volume2,
+  Briefcase,
+  Camera,
+  Code2,
+  MapPin,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
@@ -32,6 +36,7 @@ import {
 
 export default function ProfileSettingsPage() {
   const inputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   const cookieUser = useMemo(() => {
     try {
@@ -47,13 +52,20 @@ export default function ProfileSettingsPage() {
 
   const [user, setUser] = useState(cookieUser);
   const [previewUrl, setPreviewUrl] = useState(cookieUser?.avatar || "/avatar.jpg");
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState(
+    cookieUser?.coverPhoto || ""
+  );
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedCoverFile, setSelectedCoverFile] = useState(null);
   const initialPreferences = getClientPreferences(cookieUser);
 
   const [form, setForm] = useState({
     displayName: cookieUser?.username || "",
     username: cookieUser?.username || "",
     about: "Hey there! I am using EgChat. 🚀",
+    jobTitle: cookieUser?.jobTitle || "",
+    location: cookieUser?.location || "",
+    developerName: cookieUser?.developerName || "Abdo Khater",
     email: cookieUser?.email || "",
     themeMode: initialPreferences.themeMode,
     themeColor: initialPreferences.themeColor,
@@ -63,6 +75,7 @@ export default function ProfileSettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -77,6 +90,7 @@ export default function ProfileSettingsPage() {
 
         setUser(fetchedUser);
         setPreviewUrl(fetchedUser.avatar || "/avatar.jpg");
+        setCoverPreviewUrl(fetchedUser.coverPhoto || "");
 
         setForm((prev) => ({
           ...prev,
@@ -84,6 +98,9 @@ export default function ProfileSettingsPage() {
           username: fetchedUser.username || "",
           email: fetchedUser.email || "",
           about: fetchedUser.about || prev.about,
+          jobTitle: fetchedUser.jobTitle || "",
+          location: fetchedUser.location || "",
+          developerName: fetchedUser.developerName || "Abdo Khater",
           themeMode: getClientPreferences(fetchedUser).themeMode,
           themeColor: getClientPreferences(fetchedUser).themeColor,
           messageSounds: getClientPreferences(fetchedUser).messageSounds,
@@ -104,6 +121,14 @@ export default function ProfileSettingsPage() {
       }
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (coverPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(coverPreviewUrl);
+      }
+    };
+  }, [coverPreviewUrl]);
 
   useEffect(() => {
     applyThemePreferences({
@@ -141,6 +166,28 @@ export default function ProfileSettingsPage() {
     const objectUrl = URL.createObjectURL(pickedFile);
     setSelectedFile(pickedFile);
     setPreviewUrl(objectUrl);
+  }
+
+  function handleCoverChange(e) {
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+
+    setError("");
+    setMessage("");
+
+    if (!pickedFile.type.startsWith("image/")) {
+      setError("Please choose an image file only.");
+      return;
+    }
+
+    if (pickedFile.size > 5 * 1024 * 1024) {
+      setError("Image must be smaller than 5 MB.");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(pickedFile);
+    setSelectedCoverFile(pickedFile);
+    setCoverPreviewUrl(objectUrl);
   }
 
   async function handleUpload() {
@@ -191,6 +238,57 @@ export default function ProfileSettingsPage() {
     }
   }
 
+  async function handleCoverUpload() {
+    if (!selectedCoverFile) {
+      setError("Choose a cover photo first.");
+      return;
+    }
+
+    if (!user?._id) {
+      setError("User not found.");
+      return;
+    }
+
+    try {
+      setIsCoverUploading(true);
+      setError("");
+      setMessage("");
+
+      const formData = new FormData();
+      formData.append("file", selectedCoverFile);
+      formData.append("user_id", user._id);
+      formData.append("purpose", "cover");
+
+      const { data } = await axios.post("/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const newCoverPhoto = data?.coverPhoto;
+
+      if (newCoverPhoto) {
+        const updatedUser = { ...user, coverPhoto: newCoverPhoto };
+        setUser(updatedUser);
+        setCoverPreviewUrl(newCoverPhoto);
+        Cookies.set("user", JSON.stringify(updatedUser));
+      }
+
+      setSelectedCoverFile(null);
+      setMessage(data?.message || "Cover photo updated successfully.");
+
+      if (coverInputRef.current) {
+        coverInputRef.current.value = "";
+      }
+    } catch (err) {
+      setError(
+        err?.response?.data?.message || "Cover upload failed. Please try again."
+      );
+    } finally {
+      setIsCoverUploading(false);
+    }
+  }
+
   async function handleSaveProfile() {
     if (!user?._id) {
       setError("User not found.");
@@ -207,6 +305,9 @@ export default function ProfileSettingsPage() {
         username: form.username,
         displayName: form.displayName,
         about: form.about,
+        jobTitle: form.jobTitle,
+        location: form.location,
+        developerName: form.developerName,
         themeMode: form.themeMode,
         themeColor: form.themeColor,
         messageSounds: form.messageSounds,
@@ -219,6 +320,10 @@ export default function ProfileSettingsPage() {
         ...user,
         username: data?.user?.username || form.username,
         about: data?.user?.about || form.about,
+        coverPhoto: data?.user?.coverPhoto || user.coverPhoto,
+        jobTitle: data?.user?.jobTitle || form.jobTitle,
+        location: data?.user?.location || form.location,
+        developerName: data?.user?.developerName || form.developerName,
         avatar: data?.user?.avatar || user.avatar,
         email: data?.user?.email || user.email,
         themeMode: data?.user?.themeMode || form.themeMode,
@@ -251,7 +356,9 @@ export default function ProfileSettingsPage() {
 
   function handleReset() {
     setSelectedFile(null);
+    setSelectedCoverFile(null);
     setPreviewUrl(user?.avatar || "/avatar.jpg");
+    setCoverPreviewUrl(user?.coverPhoto || "");
     setError("");
     setMessage("");
     const preferences = getClientPreferences(user);
@@ -260,6 +367,9 @@ export default function ProfileSettingsPage() {
       displayName: user?.username || "",
       username: user?.username || "",
       about: user?.about || "Hey there! I am using EgChat. 🚀",
+      jobTitle: user?.jobTitle || "",
+      location: user?.location || "",
+      developerName: user?.developerName || "Abdo Khater",
       email: user?.email || "",
       themeMode: preferences.themeMode,
       themeColor: preferences.themeColor,
@@ -269,6 +379,10 @@ export default function ProfileSettingsPage() {
 
     if (inputRef.current) {
       inputRef.current.value = "";
+    }
+
+    if (coverInputRef.current) {
+      coverInputRef.current.value = "";
     }
   }
 
@@ -317,12 +431,64 @@ export default function ProfileSettingsPage() {
 
       <div className="px-6 py-8 lg:px-10">
         <div className="space-y-8">
+          <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4 shadow-sm sm:p-6">
+            <div className="relative min-h-48 overflow-hidden rounded-lg border border-white/10 bg-black/25">
+              {coverPreviewUrl ? (
+                <Image
+                  src={coverPreviewUrl}
+                  alt="Cover photo"
+                  fill
+                  sizes="(max-width: 1024px) 92vw, 900px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,0.28),rgba(15,23,42,0.72),rgba(16,185,129,0.18))]" />
+              )}
+
+              <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-between gap-3 bg-black/45 p-4 backdrop-blur">
+                <div>
+                  <p className="text-sm font-bold text-white">Profile Cover</p>
+                  <p className="text-xs text-slate-300">
+                    Add a wide photo for your Facebook-style profile header.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => coverInputRef.current?.click()}
+                    className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Choose
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCoverUpload}
+                    disabled={isCoverUploading || !selectedCoverFile}
+                    className="rounded-lg bg-cyan-400 px-3 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isCoverUploading ? "Uploading..." : "Upload Cover"}
+                  </button>
+                </div>
+              </div>
+
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverChange}
+                className="hidden"
+              />
+            </div>
+          </div>
+
           <div className="rounded-lg border border-white/10 bg-white/[0.045] p-6 shadow-sm sm:p-8">
             <div className="flex flex-col items-center gap-8 sm:flex-row">
               <div className="relative">
                 <div className="relative h-36 w-36 overflow-hidden rounded-full ring-4 ring-white/5 shadow-xl">
                   <Image
-                    src={previewUrl || user.avatar}
+                    src={previewUrl || user?.avatar || "/avatar.jpg"}
                     alt="Profile"
                     fill
                     className="object-cover"
@@ -415,6 +581,58 @@ export default function ProfileSettingsPage() {
                       value={form.username}
                       onChange={handleInputChange}
                       className="h-12 w-full rounded-xl border border-white/10 bg-[#08111d] pl-8 pr-4 font-medium text-white focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-300">
+                    Job Title
+                  </label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
+                    <input
+                      type="text"
+                      name="jobTitle"
+                      value={form.jobTitle}
+                      onChange={handleInputChange}
+                      placeholder="Designer, developer..."
+                      className="h-12 w-full rounded-xl border border-white/10 bg-[#08111d] pl-11 pr-4 font-medium text-white focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-300">
+                    Location
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
+                    <input
+                      type="text"
+                      name="location"
+                      value={form.location}
+                      onChange={handleInputChange}
+                      placeholder="Cairo, Egypt"
+                      className="h-12 w-full rounded-xl border border-white/10 bg-[#08111d] pl-11 pr-4 font-medium text-white focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-300">
+                    Developer
+                  </label>
+                  <div className="relative">
+                    <Code2 className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
+                    <input
+                      type="text"
+                      name="developerName"
+                      value={form.developerName}
+                      onChange={handleInputChange}
+                      className="h-12 w-full rounded-xl border border-white/10 bg-[#08111d] pl-11 pr-4 font-medium text-white focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
                     />
                   </div>
                 </div>

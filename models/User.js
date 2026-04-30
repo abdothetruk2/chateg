@@ -28,6 +28,10 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: "/avatar.jpg",
     },
+    coverPhoto: {
+      type: String,
+      default: "",
+    },
     status: {
       type: Boolean,
       default: false,
@@ -41,6 +45,21 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default:"hey i am uses nexus"
 
+    },
+    jobTitle: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    location: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    developerName: {
+      type: String,
+      default: "Abdo Khater",
+      trim: true,
     },
     themeMode: {
       type: String,

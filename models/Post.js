@@ -20,6 +20,11 @@ const PostSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    postType: {
+      type: String,
+      enum: ["profile", "group"],
+      default: "profile",
+    },
     likes: [
       {
         type: mongoose.Schema.Types.ObjectId,

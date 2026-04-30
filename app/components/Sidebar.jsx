@@ -69,6 +69,11 @@ export default function Sidebar() {
           </Link>
         );
       })}
+      <div className="mt-auto hidden w-full pb-2 text-center text-[10px] font-bold uppercase leading-4 tracking-wide text-slate-500 lg:block">
+        <span className="block text-cyan-200">Dev</span>
+        <span>Abdo</span>
+        <span className="block">Khater</span>
+      </div>
     </aside>
   );
 }

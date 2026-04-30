@@ -21,7 +21,12 @@ import {
   Paperclip,
   Send,
   BadgeCheck,
+  Briefcase,
   Check,
+  CheckCheck,
+  LogOut,
+  MapPin,
+  Trash2,
   Users,
   FileText,
   Upload,
@@ -117,6 +122,41 @@ function upsertMessageList(list = [], incomingMessage) {
   return next;
 }
 
+function removeMessageFromList(list = [], messageId = "") {
+  if (!messageId) return list;
+
+  return list.filter((message) => getMessageDbId(message) !== messageId);
+}
+
+function getReactionSummary(reactions = []) {
+  const counts = new Map();
+
+  reactions.forEach((reaction) => {
+    if (!reaction?.emoji) return;
+    counts.set(reaction.emoji, (counts.get(reaction.emoji) || 0) + 1);
+  });
+
+  return Array.from(counts.entries()).map(([emoji, count]) => ({
+    emoji,
+    count,
+  }));
+}
+
+function markMessagesReadInList(list = [], data = {}) {
+  if (!data.sender || !data.reader) return list;
+
+  return list.map((message) => {
+    const sender = message.sender || message.username || "";
+    const receiver = message.receiver || message.recname || "";
+
+    if (sender === data.sender && receiver === data.reader) {
+      return { ...message, read: true };
+    }
+
+    return message;
+  });
+}
+
 function isMessageInChat(message, chat, currentUsername) {
   if (!message || !chat || !currentUsername) return false;
 
@@ -143,6 +183,8 @@ function isMessageInChat(message, chat, currentUsername) {
   );
 }
 
+const messageEmotions = ["👍", "❤️", "😂", "🔥", "👏", "😮"];
+
 export default function ChatWindow({
   selectedUser,
   selectedMessages = [],
@@ -168,6 +210,7 @@ export default function ChatWindow({
   const [callPeer, setCallPeer] = useState(null);
   const [friendshipOverride, setFriendshipOverride] = useState("");
   const [friendshipMessage, setFriendshipMessage] = useState("");
+  const [showMessageEmotions, setShowMessageEmotions] = useState(false);
     
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -452,6 +495,82 @@ export default function ChatWindow({
       console.error("Remove group member failed:", error);
     }
   }
+
+  async function leaveGroup() {
+    try {
+      if (!currentUserId || selectedUser?.type !== "group") return;
+
+      const res = await axios.post("/api/groupmembers", {
+        action: "leave",
+        userId: currentUserId,
+        groupId: selectedUser._id,
+        name: selectedUser.name,
+      });
+
+      syncGroupFromResponse(res.data);
+    } catch (error) {
+      console.error("Leave group failed:", error);
+    }
+  }
+
+  async function deleteMessage(targetMessage) {
+    const messageId = getMessageDbId(targetMessage);
+
+    if (!messageId || !currentUser?.username) return;
+
+    try {
+      await axios.delete(`/api/message/${messageId}`, {
+        data: { username: currentUser.username },
+      });
+
+      setMessages((prev) => removeMessageFromList(prev, messageId));
+
+      if (typeof setParentMessages === "function") {
+        setParentMessages((prev) => removeMessageFromList(prev, messageId));
+      }
+
+      socket.emit("message-deleted", {
+        ...targetMessage,
+        _id: messageId,
+      });
+    } catch (error) {
+      console.error("Delete message failed:", error);
+    }
+  }
+
+  async function reactToMessage(targetMessage, emoji) {
+    const messageId = getMessageDbId(targetMessage);
+    const reactionUser = currentUserId || currentUser?.username;
+
+    if (!messageId || !reactionUser) return;
+
+    const currentReaction = (targetMessage.reactions || []).find(
+      (reaction) => reaction.user === reactionUser
+    );
+    const nextEmoji = currentReaction?.emoji === emoji ? "" : emoji;
+
+    try {
+      const res = await axios.patch(`/api/message/${messageId}`, {
+        action: "react",
+        userId: reactionUser,
+        emoji: nextEmoji,
+      });
+
+      const nextMessage = res.data?.message;
+      if (nextMessage) {
+        upsertMessage(nextMessage, { syncParent: true });
+        socket.emit("message-reaction", nextMessage);
+      }
+    } catch (error) {
+      console.error("Message reaction failed:", error);
+    }
+  }
+
+  function appendMessageEmoji(emoji) {
+    setMessage((prev) => `${prev}${emoji}`);
+    setShowMessageEmotions(false);
+    inputRef.current?.focus();
+  }
   const upsertParentMessage = useCallback(
     (incomingMessage) => {
       if (
@@ -530,6 +649,8 @@ export default function ChatWindow({
     mediaType: attachedMediaType,
 
     unread: 1,
+    read: false,
+    reactions: [],
     type: isGroup ? "group" : "user",
     chat: isGroup ? selectedUser.name : "",
 
@@ -646,6 +767,8 @@ useEffect(() => {
         type: data.type || "user",
         chat: data.chat || "",
         storyReply: data.storyReply || null,
+        read: Boolean(data.read),
+        reactions: Array.isArray(data.reactions) ? data.reactions : [],
         createdAt: data.createdAt,
         pending: false,
         failed: false,
@@ -723,11 +846,46 @@ useEffect(() => {
       }
     }
 
+    function onMessagesRead(data) {
+      if (selectedUser?.type === "group") return;
+      if (
+        data?.sender !== currentUser?.username ||
+        data?.reader !== selectedUser?.username
+      ) {
+        return;
+      }
+
+      setMessages((prev) => markMessagesReadInList(prev, data));
+
+      if (typeof setParentMessages === "function") {
+        setParentMessages((prev) => markMessagesReadInList(prev, data));
+      }
+    }
+
+    function onMessageDeleted(data) {
+      const messageId = getMessageDbId(data);
+      if (!messageId) return;
+
+      setMessages((prev) => removeMessageFromList(prev, messageId));
+
+      if (typeof setParentMessages === "function") {
+        setParentMessages((prev) => removeMessageFromList(prev, messageId));
+      }
+    }
+
+    function onMessageReaction(data) {
+      if (!isMessageInChat(data, selectedUser, currentUser?.username)) return;
+      upsertMessage(data, { syncParent: true });
+    }
+
     socket.on("connect", onConnect);
     socket.on("message", onMessage);
     socket.on("incoming-call", onIncomingCall);
     socket.on("typing", onTyping);
     socket.on("presence", onPresence);
+    socket.on("messages-read", onMessagesRead);
+    socket.on("message-deleted", onMessageDeleted);
+    socket.on("message-reaction", onMessageReaction);
 
     if (socket.connected) {
       onConnect();
@@ -741,10 +899,13 @@ useEffect(() => {
       socket.off("incoming-call", onIncomingCall);
       socket.off("typing", onTyping);
       socket.off("presence", onPresence);
+      socket.off("messages-read", onMessagesRead);
+      socket.off("message-deleted", onMessageDeleted);
+      socket.off("message-reaction", onMessageReaction);
       Object.values(typingTimeoutRef.current).forEach(clearTimeout);
       typingTimeoutRef.current = {};
     };
-  }, [selectedUser, currentUser, notifyOnIncoming, upsertMessage]);
+  }, [selectedUser, currentUser, notifyOnIncoming, setParentMessages, upsertMessage]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -791,6 +952,8 @@ useEffect(() => {
         recname: receiver,
         message: "",
         unread: 1,
+        read: false,
+        reactions: [],
         type: isGroup ? "group" : "user",
         chat: isGroup ? receiver : "",
       };
@@ -971,11 +1134,18 @@ useEffect(() => {
                 const storyReplyType = getFileType(
                   msg.storyReply?.mediaType || msg.storyReply?.mediaUrl
                 );
+                const messageId = getMessageDbId(msg);
+                const reactionSummary = getReactionSummary(msg.reactions || []);
+                const reactionUser = currentUserId || currentUser?.username;
+                const ownReaction = (msg.reactions || []).find(
+                  (reaction) => String(reaction.user) === String(reactionUser)
+                );
+                const showReadReceipt = isMe && msg.type !== "group";
 
                 return (
                   <div
                     key={msg.clientId || msg.id || index}
-                    className={`flex items-end gap-3 ${
+                    className={`group/message flex items-end gap-3 ${
                       isMe ? "justify-end" : "justify-start"
                     }`}
                   >
@@ -999,12 +1169,28 @@ useEffect(() => {
                       )}
 
                       <div
-                        className={`rounded-lg px-4 py-3 ${
-                          isMe
-                            ? "rounded-br-sm bg-cyan-300 text-slate-950"
-                            : "rounded-bl-sm bg-white/10 text-slate-100"
+                        className={`flex items-end gap-2 ${
+                          isMe ? "justify-end" : "justify-start"
                         }`}
                       >
+                        {isMe && messageId && !msg.pending && (
+                          <button
+                            type="button"
+                            title="Delete message"
+                            onClick={() => deleteMessage(msg)}
+                            className="mb-1 rounded-lg p-1.5 text-slate-400 opacity-0 transition hover:bg-red-500/10 hover:text-red-200 group-hover/message:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+
+                        <div
+                          className={`rounded-lg px-4 py-3 ${
+                            isMe
+                              ? "rounded-br-sm bg-cyan-300 text-slate-950"
+                              : "rounded-bl-sm bg-white/10 text-slate-100"
+                          }`}
+                        >
                         {msg.storyReply?.storyId && (
                           <div
                             className={`mb-3 overflow-hidden rounded-lg border ${
@@ -1093,7 +1279,75 @@ useEffect(() => {
                             {msg.message}
                           </p>
                         )}
+                        </div>
                       </div>
+
+                      {reactionSummary.length > 0 && (
+                        <div
+                          className={`flex flex-wrap gap-1 px-1 ${
+                            isMe ? "justify-end" : "justify-start"
+                          }`}
+                        >
+                          {reactionSummary.map((reaction) => (
+                            <span
+                              key={reaction.emoji}
+                              className="rounded-full border border-white/10 bg-black/25 px-2 py-0.5 text-xs text-slate-100 shadow-sm"
+                            >
+                              {reaction.emoji}
+                              {reaction.count > 1 ? ` ${reaction.count}` : ""}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {messageId && !msg.pending && !msg.failed && (
+                        <div
+                          className={`flex flex-wrap gap-1 px-1 opacity-0 transition group-hover/message:opacity-100 ${
+                            isMe ? "justify-end" : "justify-start"
+                          }`}
+                        >
+                          {messageEmotions.slice(0, 4).map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => reactToMessage(msg, emoji)}
+                              className={`rounded-full px-2 py-1 text-xs transition hover:bg-white/15 ${
+                                ownReaction?.emoji === emoji
+                                  ? "bg-cyan-300/25 text-cyan-100"
+                                  : "bg-white/5 text-slate-200"
+                              }`}
+                              title={`React ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {showReadReceipt && (
+                        <div className="flex justify-end px-1">
+                          <span
+                            className={`flex items-center gap-1 text-[11px] font-semibold ${
+                              msg.read
+                                ? "read-receipt-pop text-cyan-100"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {msg.read ? (
+                              <CheckCheck className="h-3.5 w-3.5" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5" />
+                            )}
+                            {msg.pending
+                              ? "Sending"
+                              : msg.failed
+                              ? "Failed"
+                              : msg.read
+                              ? "Read"
+                              : "Sent"}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1174,6 +1428,22 @@ useEffect(() => {
               </div>
             )}
 
+            {showMessageEmotions && (
+              <div className="mb-3 flex flex-wrap gap-2 rounded-lg border border-white/10 bg-white/[0.055] p-2">
+                {messageEmotions.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => appendMessageEmoji(emoji)}
+                    className="rounded-lg px-3 py-2 text-lg transition hover:bg-white/10"
+                    title={`Add ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
               <button
                 onClick={() => inputRef.current?.click()}
@@ -1212,6 +1482,7 @@ useEffect(() => {
                 <button
                   className="text-slate-400 transition hover:text-white"
                   type="button"
+                  onClick={() => setShowMessageEmotions((prev) => !prev)}
                 >
                   <Smile className="h-5 w-5" />
                 </button>
@@ -1296,6 +1567,23 @@ useEffect(() => {
               <p className="mx-auto mt-2 max-w-[240px] whitespace-pre-wrap text-sm leading-5 text-slate-400">
                 {profileBio}
               </p>
+
+              {selectedUser?.type !== "group" && (
+                <div className="mx-auto mt-4 flex max-w-[260px] flex-col gap-2 text-left text-xs text-slate-300">
+                  {selectedUser?.jobTitle && (
+                    <p className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+                      <Briefcase className="h-4 w-4 text-cyan-200" />
+                      <span className="truncate">{selectedUser.jobTitle}</span>
+                    </p>
+                  )}
+                  {selectedUser?.location && (
+                    <p className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+                      <MapPin className="h-4 w-4 text-cyan-200" />
+                      <span className="truncate">{selectedUser.location}</span>
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="mt-8 flex items-center justify-between">
@@ -1507,6 +1795,17 @@ useEffect(() => {
                   >
                     <UserPlus className="h-4 w-4" />
                     {hasPendingJoinRequest ? "Request Pending" : "Join Group"}
+                  </button>
+                )}
+
+                {isGroupMember && !isGroupAdmin && (
+                  <button
+                    onClick={leaveGroup}
+                    className="flex items-center gap-2 rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-2 font-semibold text-red-100 transition hover:-translate-y-0.5 hover:bg-red-500/20"
+                    type="button"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Leave Group
                   </button>
                 )}
               </div>

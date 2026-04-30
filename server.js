@@ -115,6 +115,44 @@ const io = new Server(httpServer, {
       });
     });
 
+    socket.on("messages-read", function (data) {
+      if (!data?.sender || !data?.reader) return;
+
+      const senderSocketIds = Array.from(userSockets[data.sender] || []);
+      senderSocketIds.forEach((socketId) => {
+        io.to(socketId).emit("messages-read", data);
+      });
+    });
+
+    function emitMessageUpdate(eventName, data) {
+      if (!data) return;
+
+      if (data.type === "group") {
+        const room = data.chat || data.receiver || data.recname;
+        if (room) socket.to(room).emit(eventName, data);
+        return;
+      }
+
+      const participants = new Set(
+        [data.sender, data.receiver, data.recname].filter(Boolean)
+      );
+
+      participants.forEach((username) => {
+        const socketIds = Array.from(userSockets[username] || []);
+        socketIds.forEach((socketId) => {
+          io.to(socketId).emit(eventName, data);
+        });
+      });
+    }
+
+    socket.on("message-deleted", function (data) {
+      emitMessageUpdate("message-deleted", data);
+    });
+
+    socket.on("message-reaction", function (data) {
+      emitMessageUpdate("message-reaction", data);
+    });
+
     socket.on("group", function (data) {
       const room = data?.room || data?.receiver;
       if (!room) return;

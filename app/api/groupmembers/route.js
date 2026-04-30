@@ -77,9 +77,9 @@ export async function POST(req) {
       );
     }
 
-    if (!["add", "remove"].includes(action)) {
+    if (!["add", "remove", "leave"].includes(action)) {
       return NextResponse.json(
-        { message: "action must be add or remove" },
+        { message: "action must be add, remove, or leave" },
         { status: 400 }
       );
     }
@@ -91,7 +91,7 @@ export async function POST(req) {
       );
     }
 
-    if (!adminId || !mongoose.Types.ObjectId.isValid(adminId)) {
+    if (action !== "leave" && (!adminId || !mongoose.Types.ObjectId.isValid(adminId))) {
       return NextResponse.json(
         { message: "Valid adminId is required" },
         { status: 400 }
@@ -109,14 +109,21 @@ export async function POST(req) {
       );
     }
 
-    if (group.admin.toString() !== adminId) {
+    if (action === "leave" && group.admin.toString() === String(userId)) {
+      return NextResponse.json(
+        { message: "Group admin cannot leave before assigning another admin" },
+        { status: 400 }
+      );
+    }
+
+    if (action !== "leave" && group.admin.toString() !== String(adminId)) {
       return NextResponse.json(
         { message: "Only the group admin can update members" },
         { status: 403 }
       );
     }
 
-    if (action === "remove" && group.admin.toString() === userId) {
+    if (action === "remove" && group.admin.toString() === String(userId)) {
       return NextResponse.json(
         { message: "Group admin cannot be removed from members" },
         { status: 400 }
@@ -138,7 +145,11 @@ export async function POST(req) {
     return NextResponse.json(
       {
         message:
-          action === "add" ? "Group member added" : "Group member removed",
+          action === "add"
+            ? "Group member added"
+            : action === "leave"
+            ? "You left the group"
+            : "Group member removed",
         group: updatedGroup,
       },
       { status: 200 }

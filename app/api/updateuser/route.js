@@ -10,6 +10,9 @@ export async function PUT(req) {
       user_id,
       username,
       about,
+      jobTitle,
+      location,
+      developerName,
       themeMode,
       themeColor,
       messageSounds,
@@ -31,6 +34,18 @@ export async function PUT(req) {
 
     if (typeof about === "string") {
       update.about = about.trim();
+    }
+
+    if (typeof jobTitle === "string") {
+      update.jobTitle = jobTitle.trim();
+    }
+
+    if (typeof location === "string") {
+      update.location = location.trim();
+    }
+
+    if (typeof developerName === "string") {
+      update.developerName = developerName.trim() || "Abdo Khater";
     }
 
     if (["light", "dark", "system"].includes(themeMode)) {

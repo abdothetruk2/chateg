@@ -32,8 +32,7 @@ export async function POST(req) {
       return NextResponse.json(messages, { status: 200 });
     }
 
-
-    const unread=await Messages.find({sender:sender,read:false})
+    const unread=await Messages.find({receiver:sender,read:false,type:{$ne:"group"}})
     const messages = await Messages.find({
       $or: [
         { sender, receiver },

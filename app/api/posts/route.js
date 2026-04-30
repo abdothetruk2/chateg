@@ -4,7 +4,7 @@ import connectDB from "../../../lib/mongoose";
 import Post from "../../../models/Post";
 
 const populatePost = [
-  { path: "user", select: "username avatar about" },
+  { path: "user", select: "username avatar coverPhoto about jobTitle location developerName" },
   { path: "comments.user", select: "username avatar" },
 ];
 
@@ -32,6 +32,7 @@ export async function POST(req) {
     const content = typeof body.content === "string" ? body.content.trim() : "";
     const mediaUrl = typeof body.mediaUrl === "string" ? body.mediaUrl : "";
     const mediaType = typeof body.mediaType === "string" ? body.mediaType : "";
+    const postType = body.postType === "group" ? "group" : "profile";
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return NextResponse.json(
@@ -54,6 +55,7 @@ export async function POST(req) {
       content,
       mediaUrl,
       mediaType,
+      postType,
     });
 
     const populatedPost = await Post.findById(post._id).populate(populatePost);

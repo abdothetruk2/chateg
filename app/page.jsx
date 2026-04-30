@@ -192,6 +192,13 @@ const router = useRouter();
 
       await axios.post("/api/messageread", payload);
 
+      if (user.type !== "group") {
+        socketRef.current?.emit("messages-read", {
+          sender: chatName,
+          reader: currentUser.username,
+        });
+      }
+
       setread((prev) =>
         prev.filter((item) => {
           if (user.type === "group") {
@@ -613,7 +620,7 @@ const router = useRouter();
     const matchesSearch = userName.includes(search.toLowerCase());
 if(currentUser.username==userName) {return false }
 
-    if (!matchesSearch=== "Unread") return getUnreadCount(user) > 0;
+    if (!matchesSearch) return false;
     if (activeFilter === "Groups") return user?.type === "group";
     if (activeFilter === "Unread") return getUnreadCount(user) > 0;
     if (activeFilter === "Channels") return user?.type === "channel";
@@ -797,7 +804,7 @@ if(currentUser.username==userName) {return false }
                     </div>
 
                     {unreadCount > 0 && (
-                      <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] animate-bounce items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-lg">
+                      <span className="missed-message-badge absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-lg">
                         {unreadCount}
                       </span>
                     )}

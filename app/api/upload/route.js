@@ -15,6 +15,7 @@ export async function POST(req) {
 
     const file = formData.get("file");
     const user_id = formData.get("user_id");
+    const purpose = formData.get("purpose") === "cover" ? "cover" : "avatar";
 
     // ✅ validation
     if (!file || typeof file === "string") {
@@ -40,7 +41,7 @@ export async function POST(req) {
     }
 
     const { url: imageUrl } = await storeUploadedFile(file, {
-      bucket: "avatar",
+      bucket: purpose,
       owner: user_id,
       allowedTypes: ["image/"],
       maxBytes: AVATAR_MAX_BYTES,
@@ -51,13 +52,14 @@ export async function POST(req) {
     
     const user = await User.findByIdAndUpdate(
       user_id,
-      { avatar: imageUrl },
+      purpose === "cover" ? { coverPhoto: imageUrl } : { avatar: imageUrl },
       { new: true }
     );
 
     return NextResponse.json({
-      message: "Avatar updated",
-      avatar: imageUrl,
+      message: purpose === "cover" ? "Cover photo updated" : "Avatar updated",
+      avatar: purpose === "avatar" ? imageUrl : user?.avatar,
+      coverPhoto: purpose === "cover" ? imageUrl : user?.coverPhoto,
       user,
     });
   } catch (error) {
