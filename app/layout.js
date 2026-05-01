@@ -15,9 +15,44 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Egchat",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  ),
+  title: {
+    default: "Egchat | Realtime Chat App",
+    template: "%s | Egchat",
+  },
   description:
-    "Fast real-time chat for groups, friends, calls, and status updates.",
+    "Egchat is a full-stack realtime chat app with rooms, groups, media sharing, stories, posts, profile covers, and WebRTC calls.",
+  applicationName: "Egchat",
+  keywords: [
+    "Egchat",
+    "realtime chat app",
+    "Next.js chat",
+    "Socket.IO",
+    "WebRTC calls",
+    "MongoDB portfolio project",
+  ],
+  authors: [{ name: "Abdo Khater" }],
+  creator: "Abdo Khater",
+  openGraph: {
+    title: "Egchat | Realtime Chat App",
+    description:
+      "Realtime messaging, rooms, posts, stories, profile covers, and browser calls.",
+    url: "/",
+    siteName: "Egchat",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Egchat | Realtime Chat App",
+    description:
+      "Full-stack chat portfolio app with realtime rooms, media, and calls.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({ children }) {

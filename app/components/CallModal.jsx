@@ -28,7 +28,13 @@ export default function CallModal({
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
 
   const myName = currentUser?.username;
-  const friendName = selectedUser?.username || incomingCall?.from;
+  const roomName =
+    selectedUser?.type === "group" ? selectedUser?.name : incomingCall?.room;
+  const friendName =
+    selectedUser?.type === "group"
+      ? selectedUser?.name
+      : selectedUser?.username || incomingCall?.from;
+  const signalingTarget = incomingCall?.from || roomName || friendName;
   const activeCallType = incomingCall?.callType || callType;
   const callStatus =
     incomingCall && status === "Ready"
@@ -64,7 +70,8 @@ export default function CallModal({
       if (event.candidate) {
         socket.emit("ice-candidate", {
           from: myName,
-          to: friendName,
+          to: signalingTarget,
+          room: !incomingCall && roomName ? roomName : undefined,
           candidate: event.candidate,
         });
       }
@@ -75,7 +82,7 @@ export default function CallModal({
   }
 
   async function startCall() {
-    if (!socket || !myName || !friendName) return;
+    if (!socket || !myName || !signalingTarget) return;
 
     setStatus("Calling...");
     setCamOn(activeCallType === "video");
@@ -92,7 +99,8 @@ export default function CallModal({
 
     socket.emit("call-user", {
       from: myName,
-      to: friendName,
+      to: signalingTarget,
+      room: roomName || undefined,
       offer,
       callType: activeCallType,
     });
@@ -128,7 +136,8 @@ export default function CallModal({
   function endCall() {
     socket?.emit("end-call", {
       from: myName,
-      to: friendName,
+      to: signalingTarget,
+      room: roomName || incomingCall?.room || undefined,
     });
 
     cleanup();
@@ -223,7 +232,7 @@ export default function CallModal({
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
             <h2 className="text-lg font-bold text-white">
-              {friendName || "Call"}
+              {roomName || friendName || "Call"}
             </h2>
             <p className="text-sm text-slate-400">{callStatus}</p>
           </div>

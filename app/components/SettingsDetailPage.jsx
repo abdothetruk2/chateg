@@ -34,7 +34,7 @@ const pageConfig = {
   notifications: {
     eyebrow: "Settings",
     title: "Notifications",
-    description: "Choose how EgChat gets your attention across messages, calls, and status activity.",
+    description: "Choose how Egchat gets your attention across messages, calls, and status activity.",
     icon: Bell,
     accent: "text-violet-300",
     sections: [
@@ -142,7 +142,7 @@ const pageConfig = {
   storage: {
     eyebrow: "Settings",
     title: "Storage",
-    description: "Review local media usage and choose what EgChat keeps on this device.",
+    description: "Review local media usage and choose what Egchat keeps on this device.",
     icon: Database,
     accent: "text-cyan-300",
     storage: true,
@@ -183,7 +183,7 @@ const pageConfig = {
   help: {
     eyebrow: "Settings",
     title: "Help",
-    description: "Find answers, contact support, and learn the fastest way around EgChat.",
+    description: "Find answers, contact support, and learn the fastest way around Egchat.",
     icon: CircleHelp,
     accent: "text-amber-300",
     help: true,

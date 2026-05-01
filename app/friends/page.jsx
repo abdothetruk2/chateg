@@ -338,7 +338,11 @@ export default function FriendsPage() {
     <div className="app-shell grid min-h-screen grid-cols-1 pb-14 md:grid-cols-[minmax(19rem,22rem)_1fr] lg:grid-cols-[4.5rem_minmax(18rem,22rem)_1fr] lg:pb-0">
       <Sidebar />
 
-      <aside className="app-panel flex min-h-[46vh] w-full flex-col border-b text-white md:h-screen md:border-b-0">
+      <aside
+        className={`app-panel min-h-[calc(100vh-3.5rem)] w-full flex-col border-b text-white md:flex md:h-screen md:border-b-0 ${
+          selectedUser ? "hidden" : "flex"
+        }`}
+      >
         <div className="border-b border-white/10 p-4">
           <div className="mb-5 flex items-center justify-between">
             <div>
@@ -444,7 +448,7 @@ export default function FriendsPage() {
               </div>
               <div>
                 <h4 className="font-semibold">Ask AI</h4>
-                <p className="text-xs text-slate-300">Powered by EgChat</p>
+                <p className="text-xs text-slate-300">Powered by Egchat</p>
               </div>
             </div>
             <Stars className="h-5 w-5 text-yellow-300" />
@@ -629,9 +633,9 @@ export default function FriendsPage() {
         />
       )}
 
-      <div>
+      <div className={selectedUser ? "block" : "hidden md:block"}>
         <div
-          className={`min-h-[54vh] transition-all duration-300 md:h-screen ${
+          className={`min-h-[calc(100vh-3.5rem)] transition-all duration-300 md:h-screen ${
             selectedUser ? "opacity-100" : "opacity-70"
           }`}
         > 
@@ -641,6 +645,7 @@ export default function FriendsPage() {
               selectedMessages={messages}
               setMessages={setMessages}
               currentUser={currentUser}
+              onBack={() => setSelectedUser(null)}
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-slate-400">

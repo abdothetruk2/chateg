@@ -24,9 +24,12 @@ export default function RegisterPage() {
       setIsSubmitting(true);
       const res = await axios.post("/api/register", form);
 
-      Cookies.set("user", JSON.stringify(res.data.user));
+      Cookies.set("user", JSON.stringify(res.data.user), {
+        expires: 14,
+        sameSite: "lax",
+      });
       setForm({ username: "", password: "", email: "" });
-      router.replace("/");
+      router.replace("/chat");
       router.refresh();
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Register failed.");
@@ -42,7 +45,7 @@ export default function RegisterPage() {
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/10 text-sm font-black text-cyan-100">
             Eg
           </div>
-          <h1 className="text-3xl font-bold text-white">Nexchat</h1>
+          <h1 className="text-3xl font-bold text-white">Egchat</h1>
           <h2 className="mt-5 text-2xl font-semibold text-white">Create account</h2>
           <p className="mt-2 text-sm text-gray-400">
             Sign up and jump straight into your chats.

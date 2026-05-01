@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Mic } from "lucide-react";
+import { Mic, Square } from "lucide-react";
 export default function VoiceRecorder({ onSend }) {
   const [recording, setRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
@@ -37,11 +37,25 @@ const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
   }
 
   return (
-    <div>
+    <div className="shrink-0">
       {!recording ? (
-        <button onClick={startRecording}><Mic/> </button>
+        <button
+          type="button"
+          onClick={startRecording}
+          className="rounded-lg border border-white/10 bg-white/5 p-3 text-slate-300 transition hover:bg-white/10 hover:text-white"
+          title="Record voice"
+        >
+          <Mic className="h-5 w-5" />
+        </button>
       ) : (
-        <button onClick={stopRecording}>⏹ Stop</button>
+        <button
+          type="button"
+          onClick={stopRecording}
+          className="rounded-lg border border-red-400/20 bg-red-500/10 p-3 text-red-100 transition hover:bg-red-500/20"
+          title="Stop recording"
+        >
+          <Square className="h-5 w-5 fill-current" />
+        </button>
       )}
     </div>
   );

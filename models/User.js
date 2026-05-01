@@ -24,6 +24,16 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    oauthProvider: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    oauthId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     avatar: {
       type: String,
       default: "/avatar.jpg",
@@ -43,7 +53,7 @@ const UserSchema = new mongoose.Schema(
     about:{
 
       type: String,
-      default:"hey i am uses nexus"
+      default:"Hey there! I am using Egchat."
 
     },
     jobTitle: {
@@ -108,6 +118,17 @@ const UserSchema = new mongoose.Schema(
 {timestamps: true}
 
 
+);
+
+UserSchema.index(
+  { oauthProvider: 1, oauthId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      oauthProvider: { $type: "string", $gt: "" },
+      oauthId: { $type: "string", $gt: "" },
+    },
+  }
 );
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);

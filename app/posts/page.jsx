@@ -64,6 +64,27 @@ function hasLiked(post, userId) {
 
 const quickEmotions = ["👍", "❤️", "😂", "🔥", "👏"];
 
+function PostsSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((item) => (
+        <article key={item} className="app-panel rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 animate-pulse rounded-full bg-white/10" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-40 animate-pulse rounded bg-white/10" />
+              <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
+            </div>
+          </div>
+          <div className="mt-4 h-4 w-5/6 animate-pulse rounded bg-white/10" />
+          <div className="mt-3 h-4 w-2/3 animate-pulse rounded bg-white/10" />
+          <div className="mt-4 h-48 animate-pulse rounded-lg bg-white/10" />
+        </article>
+      ))}
+    </div>
+  );
+}
+
 export default function PostsPage() {
   const fileInputRef = useRef(null);
   const [currentUser] = useState(() => getCurrentUser());
@@ -392,9 +413,7 @@ export default function PostsPage() {
         </section>
 
         {loading ? (
-          <div className="app-panel-muted rounded-lg p-4 text-sm text-slate-300">
-            Loading posts...
-          </div>
+          <PostsSkeleton />
         ) : posts.length === 0 ? (
           <div className="app-panel-muted rounded-lg p-6 text-center text-sm text-slate-300">
             No posts yet.
@@ -495,9 +514,27 @@ export default function PostsPage() {
                           className="group rounded-lg bg-white/[0.045] px-3 py-2"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-xs font-bold text-cyan-100">
-                              {comment.user?.username || "User"}
-                            </p>
+                            <div className="flex min-w-0 items-start gap-2">
+                              <div className="relative mt-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full">
+                                <Image
+                                  src={comment.user?.avatar || "/avatar.jpg"}
+                                  alt={comment.user?.username || "Comment author"}
+                                  fill
+                                  sizes="32px"
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-xs font-bold text-cyan-100">
+                                  {comment.user?.username || "User"}
+                                </p>
+                                {comment.user?.jobTitle && (
+                                  <p className="truncate text-[11px] text-slate-500">
+                                    {comment.user.jobTitle}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
                             {(ownsPost ||
                               String(comment.user?._id || "") ===
                                 String(currentUser?._id || "")) && (
@@ -511,7 +548,7 @@ export default function PostsPage() {
                               </button>
                             )}
                           </div>
-                          <p className="mt-1 text-sm text-slate-200">
+                          <p className="mt-2 pl-10 text-sm text-slate-200">
                             {comment.message}
                           </p>
                         </div>

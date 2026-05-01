@@ -2,15 +2,24 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
+import { Code2, PlayCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDemoSubmitting, setIsDemoSubmitting] = useState(false);
+
+  function storeUser(user) {
+    Cookies.set("user", JSON.stringify(user), {
+      expires: 14,
+      sameSite: "lax",
+    });
+  }
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -24,9 +33,9 @@ export default function LoginPage() {
       setIsSubmitting(true);
       const res = await axios.post("/api/login", form);
 
-      Cookies.set("user", JSON.stringify(res.data.user));
+      storeUser(res.data.user);
       setForm({ username: "", password: "" });
-      router.replace("/");
+      router.replace("/chat");
       router.refresh();
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || "Login failed.");
@@ -35,12 +44,49 @@ export default function LoginPage() {
     }
   }
 
+  async function handleDemoLogin() {
+    try {
+      setIsDemoSubmitting(true);
+      setError("");
+      const res = await axios.post("/api/demo-login");
+
+      storeUser(res.data.user);
+      router.replace("/chat");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Demo login failed."
+      );
+    } finally {
+      setIsDemoSubmitting(false);
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauth = params.get("oauth");
+
+    if (oauth === "missing") {
+      setError("GitHub login needs GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.");
+    } else if (oauth === "failed" || oauth === "invalid") {
+      setError("GitHub login could not be completed.");
+    }
+
+    if (params.get("demo") === "1") {
+      handleDemoLogin();
+    }
+    // Run only once when the login page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="app-shell flex min-h-screen items-center justify-center px-4 py-10">
       <div className="app-panel w-full max-w-sm rounded-lg p-8">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/10 text-sm font-black text-cyan-100">
-            Egchat
+            Eg
           </div>
           <h1 className="text-3xl font-bold text-white">Egchat</h1>
           <h2 className="mt-5 text-2xl font-semibold text-white">Welcome Back</h2>
@@ -106,6 +152,32 @@ export default function LoginPage() {
             {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
+
+        <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[1.5px] text-slate-500">
+          <span className="h-px flex-1 bg-white/10" />
+          Demo and OAuth
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
+
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={isDemoSubmitting}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <PlayCircle className="h-4 w-4" />
+            {isDemoSubmitting ? "Opening demo..." : "Continue with demo account"}
+          </button>
+
+          <a
+            href="/api/auth/github"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+          >
+            <Code2 className="h-4 w-4" />
+            Continue with GitHub
+          </a>
+        </div>
       </div>
     </div>
   );

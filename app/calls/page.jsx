@@ -317,7 +317,7 @@ export default function CallsPage() {
             </div>
 
             <h1 className="text-2xl font-black">
-              {selected ? selected.username : "Secure EgChat Calls"}
+              {selected ? selected.username : "Secure Egchat Calls"}
             </h1>
 
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-300">

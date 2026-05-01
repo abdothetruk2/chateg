@@ -1,22 +1,33 @@
 import connectDB from "../../../lib/mongoose";
 import User from "../../../models/User"
+import { sanitizeUser } from "../../../lib/auth";
+import { hashPassword } from "../../../lib/password";
 
 export async function POST(req) {
   try {
     const body = await req.json();
+    const username = typeof body.username === "string" ? body.username.trim() : "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password = typeof body.password === "string" ? body.password : "";
+
+    if (!username || !email || password.length < 6) {
+      return Response.json(
+        { error: "Username, email, and a 6+ character password are required." },
+        { status: 400 }
+      );
+    }
 
     await connectDB();
 
     const user = await User.create({
-      username: body.username,
-      email: body.email,
-      password: body.password,
+      username,
+      email,
+      password: await hashPassword(password),
       status: true,
       displayname: "online",
     });
 
-    const safeUser = user.toObject();
-    delete safeUser.password;
+    const safeUser = sanitizeUser(user);
     safeUser.status = true;
     safeUser.displayname = "online";
 
@@ -28,6 +39,13 @@ export async function POST(req) {
       { status: 201 }
     );
   } catch (error) {
+    if (error?.code === 11000) {
+      return Response.json(
+        { error: "Username or email already exists." },
+        { status: 409 }
+      );
+    }
+
     return Response.json({ error: error.message }, { status: 500 });
   }
 }

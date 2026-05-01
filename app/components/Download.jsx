@@ -31,7 +31,7 @@ export default function DownloadSection() {
       </div>
 
       <h2 className="mb-6 text-4xl font-black tracking-tight text-white md:text-5xl">
-        Download <span className="italic text-cyan-200">EgChat</span> Desktop
+        Download <span className="italic text-cyan-200">Egchat</span> Desktop
       </h2>
 
       <p className="mb-10 max-w-2xl text-xl leading-relaxed text-slate-300">

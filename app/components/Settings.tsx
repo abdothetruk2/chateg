@@ -62,7 +62,7 @@ export default function ProfileSettingsPage() {
   const [form, setForm] = useState({
     displayName: cookieUser?.username || "",
     username: cookieUser?.username || "",
-    about: "Hey there! I am using EgChat. 🚀",
+    about: "Hey there! I am using Egchat. 🚀",
     jobTitle: cookieUser?.jobTitle || "",
     location: cookieUser?.location || "",
     developerName: cookieUser?.developerName || "Abdo Khater",
@@ -366,7 +366,7 @@ export default function ProfileSettingsPage() {
     setForm({
       displayName: user?.username || "",
       username: user?.username || "",
-      about: user?.about || "Hey there! I am using EgChat. 🚀",
+      about: user?.about || "Hey there! I am using Egchat. 🚀",
       jobTitle: user?.jobTitle || "",
       location: user?.location || "",
       developerName: user?.developerName || "Abdo Khater",

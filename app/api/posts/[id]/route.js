@@ -5,7 +5,7 @@ import Post from "../../../../models/Post";
 
 const populatePost = [
   { path: "user", select: "username avatar coverPhoto about jobTitle location developerName" },
-  { path: "comments.user", select: "username avatar" },
+  { path: "comments.user", select: "username avatar jobTitle" },
 ];
 
 export async function PATCH(req, context) {

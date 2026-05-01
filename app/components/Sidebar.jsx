@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CircleAlert,
+  Hash,
   MessageSquare,
   Newspaper,
   Phone,
@@ -15,7 +16,8 @@ import { Button } from "./ui/button";
 import { cn } from "../../lib/utils";
 import Cookies from "js-cookie";
 const items = [
-  { name: "Messages", icon: MessageSquare, href: "/" },
+  { name: "Messages", icon: MessageSquare, href: "/chat" },
+  { name: "Rooms", icon: Hash, href: "/rooms" },
   { name: "Posts", icon: Newspaper, href: "/posts" },
   { name: "Contacts", icon: Users, href: "/friends" },
   { name: "Calls", icon: Phone, href: "/calls" },
@@ -45,8 +47,7 @@ export default function Sidebar() {
       {items.map((item) => {
         const Icon = item.icon;
         const active =
-          pathname === item.href ||
-          (item.href !== "/" && pathname.startsWith(item.href));
+          pathname === item.href || pathname.startsWith(`${item.href}/`);
 
         return (
           <Link key={item.name} href={item.href} className="shrink-0">

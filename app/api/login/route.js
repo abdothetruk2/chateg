@@ -1,14 +1,30 @@
 import connectDB from "../../../lib/mongoose";
 import User from "../../../models/User"
+import { sanitizeUser } from "../../../lib/auth";
+import {
+  hashPassword,
+  needsPasswordRehash,
+  verifyPassword,
+} from "../../../lib/password";
 
 export async function POST(req) {
   try {
     const body = await req.json();
+    const username = typeof body.username === "string" ? body.username.trim() : "";
+    const password = typeof body.password === "string" ? body.password : "";
+
+    if (!username || !password) {
+      return Response.json(
+        { message: "Username and password are required" },
+        { status: 400 }
+      );
+    }
+
 
     await connectDB();
 
     const user = await User.findOne({
-      username: body.username,
+      username,
     });
 
 
@@ -21,20 +37,26 @@ export async function POST(req) {
       );
     }
 
-    if (user.password !== body.password) {
+    const passwordIsValid = await verifyPassword(password, user.password);
+
+    if (!passwordIsValid) {
       return Response.json(
         { message: "Invalid username or password" },
         { status: 401 }
       );
-    } 
+    }
+
+    const passwordUpdate = needsPasswordRehash(user.password)
+      ? { password: await hashPassword(password) }
+      : {};
+
     await User.findByIdAndUpdate(
       { _id: user._id },
-      { status: true, displayname: "online" },
+      { ...passwordUpdate, status: true, displayname: "online" },
       { new: true }
     );
 
-    const safeUser = user.toObject();
-    delete safeUser.password;
+    const safeUser = sanitizeUser(user);
     safeUser.status = true;
     safeUser.displayname = "online";
 

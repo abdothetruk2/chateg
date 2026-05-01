@@ -190,6 +190,7 @@ export default function ChatWindow({
   selectedMessages = [],
   setMessages: setParentMessages,
   notifyOnIncoming = true,
+  onBack,
 }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
@@ -599,7 +600,8 @@ export default function ChatWindow({
   );
 
   function openChatCall(type) {
-    if (!selectedUser || selectedUser?.type === "group") return;
+    if (!selectedUser) return;
+    if (selectedUser?.type === "group" && !isGroupMember) return;
 
     setIncomingCall(null);
     setCallPeer(selectedUser);
@@ -712,6 +714,17 @@ export default function ChatWindow({
       socket.connect();
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.username || selectedUser?.type !== "group" || !selectedUser?.name) {
+      return;
+    }
+
+    socket.emit("join-room", {
+      room: selectedUser.name,
+      user: currentUser.username,
+    });
+  }, [currentUser?.username, selectedUser?.name, selectedUser?.type]);
 
   useEffect(() => {
     setFriendshipOverride("");
@@ -998,15 +1011,20 @@ useEffect(() => {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex min-h-[54vh] overflow-hidden bg-transparent text-white md:h-screen">
+      <div className="flex min-h-[calc(100vh-3.5rem)] overflow-hidden bg-transparent text-white md:h-screen">
         <main className="flex min-w-0 flex-1 flex-col border-r border-white/10">
           <header className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-4 backdrop-blur md:px-6">
-            <div className="flex items-center gap-3">
-              <button className="rounded-lg p-2 transition hover:bg-white/10 md:hidden">
+            <div className="min-w-0 flex-1 flex items-center gap-3">
+              <button
+                className="rounded-lg p-2 transition hover:bg-white/10 md:hidden"
+                type="button"
+                onClick={onBack}
+                aria-label="Back to chats"
+              >
                 <ArrowLeft className="h-5 w-5" />
               </button>
 
-              <div className="flex cursor-pointer items-center gap-3">
+              <div className="flex min-w-0 cursor-pointer items-center gap-3">
                 <div className="relative">
                   <div className="relative h-11 w-11 overflow-hidden rounded-full">
                     <Image
@@ -1027,8 +1045,8 @@ useEffect(() => {
                   )}
                 </div>
 
-                <div>
-                  <h3 className="font-semibold">{selectedChatName}</h3>
+                <div className="min-w-0">
+                  <h3 className="truncate font-semibold">{selectedChatName}</h3>
 
                   <p
                     className={`text-sm ${
@@ -1043,34 +1061,38 @@ useEffect(() => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <button
-                className="hidden rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
+                className="flex rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 title={
                   selectedUser?.type === "group"
-                    ? "Calls are available for direct chats"
+                    ? isGroupMember
+                      ? "Group video call"
+                      : "Join the group before calling"
                     : "Video call"
                 }
-                disabled={selectedUser?.type === "group"}
+                disabled={selectedUser?.type === "group" && !isGroupMember}
                 onClick={() => openChatCall("video")}
               >
                 <Video className="h-5 w-5" />
               </button>
               <button
-                className="hidden rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
+                className="flex rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 title={
                   selectedUser?.type === "group"
-                    ? "Calls are available for direct chats"
+                    ? isGroupMember
+                      ? "Group voice call"
+                      : "Join the group before calling"
                     : "Voice call"
                 }
-                disabled={selectedUser?.type === "group"}
+                disabled={selectedUser?.type === "group" && !isGroupMember}
                 onClick={() => openChatCall("audio")}
               >
                 <Phone className="h-5 w-5" />
               </button>
-              <button className="rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10">
+              <button className="hidden rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 sm:flex">
                 <Search className="h-5 w-5" />
               </button>
               <button
@@ -1447,7 +1469,7 @@ useEffect(() => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => inputRef.current?.click()}
-                className="rounded-lg border border-white/10 bg-white/5 p-3 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/10"
+                className="hidden rounded-lg border border-white/10 bg-white/5 p-3 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/10 sm:block"
                 title="Attach Files"
                 type="button"
               >

@@ -7,7 +7,7 @@ export default function Loading() {
           <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-cyan-300" />
           <div className="absolute inset-3 rounded-full bg-cyan-300/20 blur-sm" />
         </div>
-        <p className="text-sm font-semibold text-slate-400">Loading Nexchat...</p>
+        <p className="text-sm font-semibold text-slate-400">Loading Egchat...</p>
       </div>
     </div>
   );

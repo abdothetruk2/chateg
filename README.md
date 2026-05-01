@@ -1,6 +1,14 @@
-# Nexchat
+# Egchat
 
 Real-time chat app built with Next.js, MongoDB, and Socket.IO.
+
+## Highlights
+
+- Public landing page with screenshots, GitHub link, and recruiter project info.
+- Demo login that seeds a recruiter account and demo room.
+- GitHub OAuth login with `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+- Realtime messages, rooms, groups, stories, posts, media, voice notes, and calls.
+- New local passwords are stored with a `scrypt` hash.
 
 ## Local Development
 
@@ -14,6 +22,15 @@ The custom server runs on `http://localhost:3000` by default.
 ## Environment
 
 Create `.env.local` from `.env.example` and set `MONGODB_URI`.
+
+Optional:
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://your-domain.example
+CLIENT_URL=https://your-domain.example
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
 
 ## Production
 
@@ -29,4 +46,5 @@ This project uses a custom `server.js` for Socket.IO, so deploy to a Node.js hos
 - `next/image` remote patterns are locked to the avatar/media hosts used by the app.
 - Next image output is configured for AVIF/WebP with a production cache TTL.
 - The production build uses `output: "standalone"` for smaller Node deployments.
-# chateg
+- `/api/health` is available for host health checks and `render.yaml` points Render to it.
+- Render Free web services still spin down when idle. For a live portfolio demo, use a paid always-on instance or a Node host with no idle spin-down.

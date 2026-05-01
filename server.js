@@ -47,6 +47,12 @@ app.prepare().then(async () => {
   await resetPresenceOnBoot();
 
   const httpServer = createServer(handler);
+  const keepAliveTimeout = Number.parseInt(
+    process.env.KEEP_ALIVE_TIMEOUT_MS || "65000",
+    10
+  );
+  httpServer.keepAliveTimeout = keepAliveTimeout;
+  httpServer.headersTimeout = keepAliveTimeout + 5000;
 
 const io = new Server(httpServer, {
   cors: {
@@ -160,7 +166,29 @@ const io = new Server(httpServer, {
       socket.join(room);
       io.to(room).emit("message2", data);
     });
+    socket.on("join-room", function (data) {
+      const room = data?.room;
+      if (!room) return;
+
+      socket.join(room);
+      socket.to(room).emit("room-presence", {
+        room,
+        user: data?.user || socket.data.username,
+        status: "joined",
+      });
+    });
  socket.on("call-user", (data) => {
+    if (data?.room) {
+      socket.to(data.room).emit("incoming-call", {
+        from: data.from,
+        to: data.room,
+        room: data.room,
+        offer: data.offer,
+        callType: data.callType || "video",
+      });
+      return;
+    }
+
     const receiverSocketIds = Array.from(userSockets[data.to] || []);
 
     receiverSocketIds.forEach((socketId) => {
@@ -185,6 +213,15 @@ const io = new Server(httpServer, {
   });
 
   socket.on("ice-candidate", (data) => {
+    if (data?.room) {
+      socket.to(data.room).emit("ice-candidate", {
+        from: data.from,
+        room: data.room,
+        candidate: data.candidate,
+      });
+      return;
+    }
+
     const receiverSocketIds = Array.from(userSockets[data.to] || []);
 
     receiverSocketIds.forEach((socketId) => {
@@ -196,6 +233,14 @@ const io = new Server(httpServer, {
   });
 
   socket.on("end-call", (data) => {
+    if (data?.room) {
+      socket.to(data.room).emit("call-ended", {
+        from: data.from,
+        room: data.room,
+      });
+      return;
+    }
+
     const receiverSocketIds = Array.from(userSockets[data.to] || []);
 
     receiverSocketIds.forEach((socketId) => {
