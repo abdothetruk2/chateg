@@ -19,11 +19,11 @@ export const metadata = {
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   ),
   title: {
-    default: "Egchat | Realtime Chat App",
+    default: "Egchat | Real-time Chat App",
     template: "%s | Egchat",
   },
   description:
-    "Egchat is a full-stack realtime chat app with rooms, groups, media sharing, stories, posts, profile covers, and WebRTC calls.",
+    "Egchat is a real-time chat app built with Next.js, MongoDB, Socket.io, Tailwind CSS, and AI features.",
   applicationName: "Egchat",
   keywords: [
     "Egchat",
@@ -36,7 +36,7 @@ export const metadata = {
   authors: [{ name: "Abdo Khater" }],
   creator: "Abdo Khater",
   openGraph: {
-    title: "Egchat | Realtime Chat App",
+    title: "Egchat | Real-time Chat App",
     description:
       "Realtime messaging, rooms, posts, stories, profile covers, and browser calls.",
     url: "/",
@@ -45,7 +45,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Egchat | Realtime Chat App",
+    title: "Egchat | Real-time Chat App",
     description:
       "Full-stack chat portfolio app with realtime rooms, media, and calls.",
   },

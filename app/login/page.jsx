@@ -68,10 +68,10 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const oauth = params.get("oauth");
 
-    if (oauth === "missing") {
-      setError("GitHub login needs GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.");
+    if (oauth === "google-missing") {
+      setError("Google login needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");
     } else if (oauth === "failed" || oauth === "invalid") {
-      setError("GitHub login could not be completed.");
+      setError("Google login could not be completed.");
     }
 
     if (params.get("demo") === "1") {
@@ -155,7 +155,7 @@ export default function LoginPage() {
 
         <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[1.5px] text-slate-500">
           <span className="h-px flex-1 bg-white/10" />
-          Demo and OAuth
+          Demo and Google
           <span className="h-px flex-1 bg-white/10" />
         </div>
 
@@ -171,11 +171,11 @@ export default function LoginPage() {
           </button>
 
           <a
-            href="/api/auth/github"
+            href="/api/auth/google"
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10"
           >
             <Code2 className="h-4 w-4" />
-            Continue with GitHub
+            Continue with Google
           </a>
         </div>
       </div>

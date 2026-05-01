@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import Cookies from "js-cookie";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Users,
   UserRound,
   Video,
   Wifi,
@@ -323,7 +325,7 @@ export default function CallsPage() {
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-300">
               {selected
                 ? `Choose voice or video to start a call with ${selected.username}.`
-                : "Select someone from the list to start a clean voice or video call experience."}
+                : "Select someone for a direct call, or open Rooms to start a group room call."}
             </p>
 
             {selected && (
@@ -344,6 +346,16 @@ export default function CallsPage() {
                   Video Call
                 </button>
               </div>
+            )}
+
+            {!selected && (
+              <Link
+                href="/rooms"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 font-bold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/15"
+              >
+                <Users className="h-5 w-5" />
+                Open Group Rooms
+              </Link>
             )}
           </div>
         </div>

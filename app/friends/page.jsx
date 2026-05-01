@@ -74,6 +74,25 @@ function isVideoStatus(statusItem) {
   );
 }
 
+function FriendListSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3, 4].map((item) => (
+        <div
+          key={item}
+          className="flex animate-pulse items-center gap-3 rounded-lg border border-white/5 bg-white/[0.03] p-3"
+        >
+          <div className="h-10 w-10 rounded-full bg-white/10" />
+          <div className="space-y-2">
+            <div className="h-3 w-28 rounded bg-white/10" />
+            <div className="h-3 w-16 rounded bg-white/5" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function FriendsPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [users, setUsers] = useState([]);
@@ -448,7 +467,9 @@ export default function FriendsPage() {
               </div>
               <div>
                 <h4 className="font-semibold">Ask AI</h4>
-                <p className="text-xs text-slate-300">Powered by Egchat</p>
+                <p className="text-xs leading-5 text-slate-300">
+                  Summarize chats, suggest replies, translate messages, or explain code.
+                </p>
               </div>
             </div>
             <Stars className="h-5 w-5 text-yellow-300" />
@@ -532,9 +553,7 @@ export default function FriendsPage() {
           )}
 
           {loading ? (
-            <div className="app-panel-muted rounded-lg p-4 text-sm text-slate-300">
-              Loading friends...
-            </div>
+            <FriendListSkeleton />
           ) : filteredUsers.length === 0 ? (
             <div className="app-panel-muted rounded-lg p-4 text-sm text-slate-300">
               No friends found.

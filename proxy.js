@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 const publicApiRoutes = [
-  "/api/auth/github",
-  "/api/auth/github/callback",
+  "/api/auth/google",
+  "/api/auth/google/callback",
   "/api/demo-login",
   "/api/health",
   "/api/login",

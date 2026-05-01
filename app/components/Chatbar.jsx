@@ -933,7 +933,12 @@ useEffect(() => {
   if (!selectedUser) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-transparent text-white">
-        <p className="text-slate-400">Select a user to start chatting.</p>
+        <div className="app-panel-muted max-w-sm rounded-lg px-6 py-5 text-center">
+          <p className="font-bold text-white">Choose a conversation</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Your messages, media, and calls will appear here.
+          </p>
+        </div>
       </div>
     );
   }

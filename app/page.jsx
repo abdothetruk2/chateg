@@ -3,7 +3,10 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
+  Bot,
   Code2,
+  Languages,
+  ListTodo,
   MessageSquareText,
   PhoneCall,
   ShieldCheck,
@@ -33,12 +36,25 @@ const stack = [
   "Socket.IO",
   "WebRTC calls",
   "Tailwind CSS",
+  "Node.js",
+  "AI API",
+];
+
+const features = [
+  "Real-time chat",
+  "Group chat",
+  "Stories/status",
+  "Unread messages",
+  "Typing indicator",
+  "Media uploads",
+  "AI assistant",
+  "Room calls",
 ];
 
 export const metadata = {
-  title: "Egchat | Realtime Chat, Groups, Calls, and Social Profiles",
+  title: "Egchat | Real-time Chat App",
   description:
-    "Egchat is a full-stack realtime messaging app with rooms, groups, media sharing, stories, posts, profile covers, and WebRTC calls.",
+    "Egchat is a real-time chat app built with Next.js, MongoDB, Socket.io, Tailwind CSS, and AI features.",
   alternates: {
     canonical: "/",
   },
@@ -77,6 +93,12 @@ export default function LandingPage() {
           >
             Open App
           </Link>
+          <Link
+            href="/register"
+            className="hidden rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/10 md:inline-flex"
+          >
+            Create Account
+          </Link>
         </nav>
       </header>
 
@@ -91,9 +113,11 @@ export default function LandingPage() {
               Egchat
             </h1>
             <p className="mt-5 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
-              A full-stack messaging product with live chat, rooms, group
-              moderation, posts, stories, media uploads, profile covers, and
-              browser calls.
+              A modern real-time chat app with groups, stories, AI assistant,
+              media messages, and online presence.
+            </p>
+            <p className="mt-3 max-w-xl text-sm leading-7 text-slate-400">
+              Built with Next.js, MongoDB, Socket.io, Tailwind CSS, and Node.js.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -105,13 +129,31 @@ export default function LandingPage() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
+                href="/login?demo=1"
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-5 py-3 text-sm font-bold text-emerald-100 transition hover:-translate-y-0.5 hover:bg-emerald-300/15"
+              >
+                Continue as Demo User
+              </Link>
+              <Link
                 href="https://github.com/abdothetruk2/chateg"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
               >
                 <Code2 className="h-4 w-4" />
-                GitHub
+                View GitHub
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center rounded-lg border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                Login
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center rounded-lg border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                Create Account
               </Link>
             </div>
           </div>
@@ -162,7 +204,7 @@ export default function LandingPage() {
                       Can I review the code and feature scope?
                     </div>
                     <div className="ml-auto max-w-[78%] rounded-lg rounded-br-sm bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950">
-                      Yes. Demo login, GitHub, and project notes are ready.
+                      Yes. Demo login, Google auth, and project notes are ready.
                     </div>
                   </div>
                   <div className="mt-auto flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3">
@@ -172,6 +214,31 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-7xl gap-4 px-4 py-14 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+          <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/10 p-6">
+            <Bot className="mb-4 h-7 w-7 text-cyan-100" />
+            <h2 className="text-2xl font-black">AI assistant</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-300">
+              Ask AI to summarize chats, suggest replies, translate messages,
+              or explain code shared inside a conversation.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              ["Summaries", MessageSquareText, "Turn long threads into concise updates."],
+              ["Translation", Languages, "Help mixed-language teams understand each other."],
+              ["Tasks", ListTodo, "Convert decisions into follow-up tasks."],
+            ].map(([title, Icon, copy]) => (
+              <div key={title} className="rounded-lg border border-white/10 bg-white/[0.045] p-5">
+                <Icon className="mb-4 h-6 w-6 text-cyan-200" />
+                <h3 className="font-black">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{copy}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -212,6 +279,21 @@ export default function LandingPage() {
                     {item}
                   </span>
                 ))}
+              </div>
+              <div className="mt-6">
+                <p className="text-xs font-bold uppercase tracking-[1.5px] text-slate-400">
+                  Features
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {features.map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-100"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 

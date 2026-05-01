@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   CircleAlert,
   Hash,
+  Puzzle,
   MessageSquare,
   Newspaper,
   Phone,
@@ -22,6 +23,7 @@ const items = [
   { name: "Contacts", icon: Users, href: "/friends" },
   { name: "Calls", icon: Phone, href: "/calls" },
   { name: "Status", icon: CircleAlert, href: "/status" },
+  { name: "Extensions", icon: Puzzle, href: "/extensions" },
   { name: "Settings", icon: Settings, href: "/settings" },
 ];
 

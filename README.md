@@ -4,10 +4,10 @@ Real-time chat app built with Next.js, MongoDB, and Socket.IO.
 
 ## Highlights
 
-- Public landing page with screenshots, GitHub link, and recruiter project info.
+- Public landing page with hero copy, screenshots, GitHub link, and recruiter project info.
 - Demo login that seeds a recruiter account and demo room.
-- GitHub OAuth login with `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
-- Realtime messages, rooms, groups, stories, posts, media, voice notes, and calls.
+- Google OAuth login with `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+- Realtime messages, rooms, groups, stories, posts, media, voice notes, tasks extensions, and calls.
 - New local passwords are stored with a `scrypt` hash.
 
 ## Local Development
@@ -28,8 +28,8 @@ Optional:
 ```bash
 NEXT_PUBLIC_SITE_URL=https://your-domain.example
 CLIENT_URL=https://your-domain.example
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
 ```
 
 ## Production

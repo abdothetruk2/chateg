@@ -174,12 +174,20 @@ export default function RoomsPage() {
                         <ShieldCheck className="h-4 w-4 shrink-0 text-cyan-200" />
                         <span className="truncate">Admin approvals enabled</span>
                       </div>
-                      <Link
-                        href="/chat"
-                        className="rounded-lg bg-cyan-300 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-cyan-200"
-                      >
-                        Open
-                      </Link>
+                      <div className="flex shrink-0 gap-2">
+                        <Link
+                          href="/chat"
+                          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+                        >
+                          Chat
+                        </Link>
+                        <Link
+                          href="/chat"
+                          className="rounded-lg bg-cyan-300 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-cyan-200"
+                        >
+                          Call
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </article>

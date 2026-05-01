@@ -799,7 +799,9 @@ export default function Home() {
               </div>
               <div className="text-left">
                 <h4 className="font-semibold">Ask AI</h4>
-                <p className="text-xs text-slate-300">Powered by Egchat</p>
+                <p className="text-xs leading-5 text-slate-300">
+                  Summarize chats, suggest replies, translate messages, or explain code.
+                </p>
               </div>
             </div>
 
@@ -958,8 +960,14 @@ export default function Home() {
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-slate-400">
-              <div className="app-panel-muted rounded-lg px-6 py-5 text-center">
-                Select a user to start chatting
+              <div className="app-panel-muted max-w-md rounded-lg px-6 py-6 text-center">
+                <h2 className="text-lg font-black text-white">
+                  Choose a conversation
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Pick a friend, group, or room to start messaging with online
+                  presence, media, AI help, and calls.
+                </p>
               </div>
             </div>
           )}
