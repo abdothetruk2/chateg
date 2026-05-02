@@ -21,7 +21,6 @@ import Cookies from "js-cookie";
 const items = [
   { name: "Posts", icon: Newspaper, href: "/posts" },
   { name: "Messages", icon: MessageSquare, href: "/chat" },
-  { name: "AI", icon: Bot, href: "/ai" },
   { name: "Rooms", icon: Hash, href: "/rooms" },
   { name: "Contacts", icon: Users, href: "/friends" },
   { name: "Calls", icon: Phone, href: "/calls" },

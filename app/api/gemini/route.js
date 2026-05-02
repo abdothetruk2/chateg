@@ -1,4 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextResponse } from "next/server";
+
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
 export async function POST(req) {
   try {
@@ -10,10 +13,10 @@ export async function POST(req) {
       mode = "chat",
     } = body || {};
 
-    const apiKey = "AIzaSyBuNMciceG3dl7_pbVY-WpQ2GxZOm30rCY";
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return Response.json(
+      return NextResponse.json(
         { message: "Missing GEMINI_API_KEY in .env.local" },
         { status: 500 }
       );
@@ -28,7 +31,7 @@ export async function POST(req) {
             ?.content?.trim();
 
     if (!userText) {
-      return Response.json(
+      return NextResponse.json(
         { message: "Message is required." },
         { status: 400 }
       );
@@ -37,7 +40,7 @@ export async function POST(req) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-flash-latest",
+      model: process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL,
       systemInstruction: `
 You are Nexchat AI Assistant.
 
@@ -68,14 +71,14 @@ Mode behavior:
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
-    return Response.json({
+    return NextResponse.json({
       text,
       reply: text,
     });
   } catch (err) {
     console.error("Gemini error:", err);
 
-    return Response.json(
+    return NextResponse.json(
       {
         message: "Gemini error. Please try again.",
         error: err?.message || "Unknown error",
