@@ -3,8 +3,8 @@ import { GoogleGenAI, Modality } from "@google/genai";
 export async function POST(req) {
   try {
     const { prompt } = await req.json();
-
-    if (!process.env.GEMINI_API_KEY) {
+const apikey="AIzaSyBuNMciceG3dl7_pbVY-WpQ2GxZOm30rCY"
+    if (!apikey) {
       return Response.json(
         { message: "Missing GEMINI_API_KEY" },
         { status: 500 }
@@ -19,7 +19,7 @@ export async function POST(req) {
     }
 
     const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: apikey,
     });
 
     const response = await ai.models.generateContent({
