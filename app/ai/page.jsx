@@ -6,6 +6,7 @@ import {
   Bot,
   Check,
   Copy,
+  ImageIcon,
   Languages,
   Loader2,
   MessageSquareText,
@@ -14,11 +15,12 @@ import {
   Send,
   Sparkles,
   Trash2,
+  Wand2,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { cn } from "../../lib/utils";
 
-const STORAGE_KEY = "nexchat-ai-thread-v1";
+const STORAGE_KEY = "nexchat-ai-thread-v2";
 
 const modes = [
   {
@@ -51,6 +53,16 @@ const modes = [
       "Translate this to English: ",
     ],
   },
+  {
+    id: "image",
+    label: "Generate Image",
+    icon: ImageIcon,
+    placeholder: "Describe the image you want...",
+    samples: [
+      "A realistic HD photo of Mount Everest at sunrise, cinematic lighting",
+      "A futuristic chat app dashboard, dark mode, neon blue glow",
+    ],
+  },
 ];
 
 function createId() {
@@ -74,6 +86,39 @@ function getApiMessages(messages) {
       role: message.role,
       content: message.content,
     }));
+}
+
+function TypingText({ text, speed = 12, onDone }) {
+  const [visibleText, setVisibleText] = useState("");
+
+  useEffect(() => {
+    if (!text) return;
+
+    setVisibleText("");
+
+    let index = 0;
+
+    const timer = window.setInterval(() => {
+      index += 1;
+      setVisibleText(text.slice(0, index));
+
+      if (index >= text.length) {
+        window.clearInterval(timer);
+        onDone?.();
+      }
+    }, speed);
+
+    return () => window.clearInterval(timer);
+  }, [text, speed, onDone]);
+
+  return (
+    <span>
+      {visibleText}
+      {visibleText.length < text.length && (
+        <span className="ml-0.5 inline-block h-4 w-1 animate-pulse rounded-full bg-cyan-200 align-middle" />
+      )}
+    </span>
+  );
 }
 
 export default function AiPage() {
@@ -143,15 +188,22 @@ export default function AiPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/gemini", {
+      const endpoint = mode === "image" ? "/api/gemini-image" : "/api/gemini";
+
+      const body =
+        mode === "image"
+          ? { prompt: text }
+          : {
+              mode,
+              messages: getApiMessages(nextMessages),
+            };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          mode,
-          messages: getApiMessages(nextMessages),
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json().catch(() => ({}));
@@ -163,7 +215,12 @@ export default function AiPage() {
       const assistantMessage = {
         id: createId(),
         role: "assistant",
-        content: data?.text || "No response returned.",
+        content:
+          mode === "image"
+            ? data?.text || "Here is your generated image."
+            : data?.text || "No response returned.",
+        imageUrl: data?.imageUrl || "",
+        isTyping: mode !== "image",
         createdAt: new Date().toISOString(),
       };
 
@@ -175,6 +232,14 @@ export default function AiPage() {
     }
   }
 
+  function finishTyping(messageId) {
+    setMessages((current) =>
+      current.map((item) =>
+        item.id === messageId ? { ...item, isTyping: false } : item
+      )
+    );
+  }
+
   function retryLastMessage() {
     const lastUserIndex = messages.findLastIndex(
       (message) => message.role === "user"
@@ -183,6 +248,7 @@ export default function AiPage() {
     if (lastUserIndex < 0 || sending) return;
 
     const lastUserMessage = messages[lastUserIndex];
+    setMode(lastUserMessage.mode || "chat");
     sendMessage(lastUserMessage.content, messages.slice(0, lastUserIndex));
   }
 
@@ -224,8 +290,13 @@ export default function AiPage() {
     <div className="min-h-screen bg-[#050816] text-white lg:grid lg:grid-cols-[4.5rem_1fr]">
       <Sidebar />
 
-      <main className="flex min-h-screen flex-col overflow-hidden">
-        <header className="border-b border-white/10 bg-white/[0.03] px-4 py-4 backdrop-blur-xl lg:px-8">
+      <main className="relative flex min-h-screen flex-col overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-32 left-1/4 h-72 w-72 rounded-full bg-cyan-500/20 blur-[110px]" />
+          <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-purple-500/10 blur-[120px]" />
+        </div>
+
+        <header className="relative z-10 border-b border-white/10 bg-white/[0.03] px-4 py-4 backdrop-blur-xl lg:px-8">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-300/20">
@@ -237,7 +308,7 @@ export default function AiPage() {
                   Nexchat AI
                 </h1>
                 <p className="text-sm text-slate-400">
-                  Smart replies, translation, and friendly AI help
+                  Smart replies, translation, image generation, and AI help
                 </p>
               </div>
             </div>
@@ -248,8 +319,8 @@ export default function AiPage() {
           </div>
         </header>
 
-        <section className="border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 px-4 py-4 lg:px-8">
-          <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto">
+        <section className="relative z-10 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 px-4 py-4 lg:px-8">
+          <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto pb-1">
             {modes.map((item) => {
               const Icon = item.icon;
               const active = item.id === mode;
@@ -274,21 +345,21 @@ export default function AiPage() {
           </div>
         </section>
 
-        <section className="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+        <section className="relative z-10 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
           {messages.length === 0 ? (
             <div className="mx-auto grid min-h-[60vh] max-w-4xl place-items-center">
-              <div className="w-full rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-8">
+              <div className="w-full rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 text-center shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-8">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-300/20">
                   <MessageSquareText className="h-8 w-8" />
                 </div>
 
                 <h2 className="mt-5 text-3xl font-black tracking-tight">
-                  How can I help you today?
+                  What do you want to create?
                 </h2>
 
                 <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-400">
-                  Choose a mode, write your message, and Nexchat AI will help
-                  you with a clear and friendly response.
+                  Ask a question, write a reply, translate text, or generate an
+                  image directly inside Nexchat.
                 </p>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -297,8 +368,12 @@ export default function AiPage() {
                       key={sample}
                       type="button"
                       onClick={() => insertSample(sample)}
-                      className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-left text-sm leading-6 text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
+                      className="group rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-left text-sm leading-6 text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
                     >
+                      <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-200/70">
+                        <Wand2 className="h-3.5 w-3.5" />
+                        Try this
+                      </div>
                       {sample}
                     </button>
                   ))}
@@ -326,14 +401,31 @@ export default function AiPage() {
 
                     <div
                       className={cn(
-                        "max-w-[min(42rem,88vw)] rounded-[1.4rem] px-4 py-3 shadow-lg",
+                        "max-w-[min(44rem,88vw)] rounded-[1.4rem] px-4 py-3 shadow-lg",
                         isUser
                           ? "rounded-br-md bg-cyan-300 text-slate-950 shadow-cyan-500/10"
                           : "rounded-bl-md border border-white/10 bg-white/[0.06] text-slate-100 shadow-black/20 backdrop-blur"
                       )}
                     >
+                      {message.imageUrl && (
+                        <div className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                          <img
+                            src={message.imageUrl}
+                            alt="Generated by Nexchat AI"
+                            className="max-h-[480px] w-full object-cover"
+                          />
+                        </div>
+                      )}
+
                       <div className="whitespace-pre-wrap break-words text-sm leading-7">
-                        {message.content}
+                        {!isUser && message.isTyping ? (
+                          <TypingText
+                            text={message.content}
+                            onDone={() => finishTyping(message.id)}
+                          />
+                        ) : (
+                          message.content
+                        )}
                       </div>
 
                       <div
@@ -365,9 +457,11 @@ export default function AiPage() {
               })}
 
               {sending && (
-                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300">
+                <div className="flex w-fit items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300">
                   <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
-                  Nexchat AI is typing...
+                  {mode === "image"
+                    ? "Generating your image..."
+                    : "Nexchat AI is typing..."}
                 </div>
               )}
 
@@ -377,13 +471,13 @@ export default function AiPage() {
         </section>
 
         {error && (
-          <div className="mx-4 mb-3 flex items-center gap-2 rounded-2xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100 lg:mx-8">
+          <div className="relative z-10 mx-4 mb-3 flex items-center gap-2 rounded-2xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100 lg:mx-8">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <footer className="border-t border-white/10 bg-[#050816]/90 px-4 py-4 backdrop-blur-xl lg:px-8">
+        <footer className="relative z-10 border-t border-white/10 bg-[#050816]/90 px-4 py-4 backdrop-blur-xl lg:px-8">
           <form
             onSubmit={submitForm}
             className="mx-auto max-w-4xl rounded-[1.6rem] border border-white/10 bg-white/[0.05] p-3 shadow-2xl shadow-black/20"
