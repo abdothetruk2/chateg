@@ -8,6 +8,7 @@ Real-time chat app built with Next.js, MongoDB, and Socket.IO.
 - Demo login that seeds a recruiter account and demo room.
 - Google OAuth login with `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 - Realtime messages, rooms, groups, stories, posts, media, voice notes, tasks extensions, and calls.
+- AI chat tab with assistant modes for chat, summaries, replies, translation, code help, and tool calls.
 - New local passwords are stored with a `scrypt` hash.
 
 ## Local Development
@@ -28,6 +29,8 @@ Optional:
 ```bash
 NEXT_PUBLIC_SITE_URL=https://your-domain.example
 CLIENT_URL=https://your-domain.example
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=openai/gpt-4o
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 ```
@@ -45,6 +48,6 @@ This project uses a custom `server.js` for Socket.IO, so deploy to a Node.js hos
 
 - `next/image` remote patterns are locked to the avatar/media hosts used by the app.
 - Next image output is configured for AVIF/WebP with a production cache TTL.
-- The production build uses `output: "standalone"` for smaller Node deployments.
+- Production uses the custom `server.js` so Socket.IO keeps working with `npm run start`.
 - `/api/health` is available for host health checks and `render.yaml` points Render to it.
 - Render Free web services still spin down when idle. For a live portfolio demo, use a paid always-on instance or a Node host with no idle spin-down.

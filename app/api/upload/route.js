@@ -53,7 +53,7 @@ export async function POST(req) {
     const user = await User.findByIdAndUpdate(
       user_id,
       purpose === "cover" ? { coverPhoto: imageUrl } : { avatar: imageUrl },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     return NextResponse.json({

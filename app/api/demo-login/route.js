@@ -31,7 +31,7 @@ async function ensureDemoUser(profile) {
     return User.findByIdAndUpdate(
       existingUser._id,
       { ...profile, status: true, displayname: "online" },
-      { new: true }
+      { returnDocument: "after" }
     );
   }
 
@@ -61,7 +61,7 @@ export async function POST() {
         },
         $addToSet: { members: { $each: [recruiter._id, engineer._id] } },
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
     );
 
     const hasSeedMessage = await Messages.exists({

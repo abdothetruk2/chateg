@@ -23,7 +23,7 @@ export async function POST(req) {
     const group = await Group.findOneAndUpdate(
       { name },
       { avatar: fileurl },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     return NextResponse.json({ group, avatar: fileurl });

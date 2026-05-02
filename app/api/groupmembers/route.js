@@ -136,7 +136,7 @@ export async function POST(req) {
         : { $pull: { members: userId, approve: userId } };
 
     const updatedGroup = await Group.findOneAndUpdate(groupQuery, update, {
-      new: true,
+      returnDocument: "after",
     })
       .populate("members", "username email avatar")
       .populate("approve", "username email avatar")

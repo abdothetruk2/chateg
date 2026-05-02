@@ -132,7 +132,7 @@ export async function GET(req) {
           status: true,
           displayname: "online",
         },
-        { new: true }
+        { returnDocument: "after" }
       );
     }
 

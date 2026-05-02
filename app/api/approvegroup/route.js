@@ -63,7 +63,7 @@ export async function POST(req) {
         $addToSet: { members: userId },
         $pull: { approve: userId },
       },
-      { new: true }
+      { returnDocument: "after" }
     )
       .populate("members", "username email avatar")
       .populate("approve", "username email avatar")

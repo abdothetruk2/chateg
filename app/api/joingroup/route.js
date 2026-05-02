@@ -78,7 +78,7 @@ export async function POST(req) {
     const updatedGroup = await Group.findOneAndUpdate(
       groupQuery,
       { $addToSet: { approve: userId } },
-      { new: true }
+      { returnDocument: "after" }
     )
       .populate("members", "username email avatar")
       .populate("approve", "username email avatar")

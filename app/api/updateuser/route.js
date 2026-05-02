@@ -67,7 +67,7 @@ export async function PUT(req) {
     await connectDB();
 
     const user = await User.findByIdAndUpdate(user_id, update, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).select("-password");
 

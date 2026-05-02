@@ -53,7 +53,7 @@ export async function POST(req) {
     await User.findByIdAndUpdate(
       { _id: user._id },
       { ...passwordUpdate, status: true, displayname: "online" },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     const safeUser = sanitizeUser(user);
