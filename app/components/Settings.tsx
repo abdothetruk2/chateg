@@ -389,9 +389,13 @@ export default function ProfileSettingsPage() {
   const themeColors = [
     { name: "Emerald", color: "bg-emerald-500" },
     { name: "Blue", color: "bg-blue-500" },
+    { name: "Sky", color: "bg-sky-500" },
+    { name: "Teal", color: "bg-teal-500" },
+    { name: "Lime", color: "bg-lime-500" },
     { name: "Purple", color: "bg-violet-500" },
     { name: "Rose", color: "bg-rose-500" },
     { name: "Amber", color: "bg-amber-500" },
+    { name: "Orange", color: "bg-orange-500" },
     { name: "Cyan", color: "bg-cyan-500" },
   ];
 

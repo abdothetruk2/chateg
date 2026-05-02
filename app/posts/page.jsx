@@ -2,11 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Cookies from "js-cookie";
 import axios from "axios";
 import {
+  BadgeCheck,
   Briefcase,
+  CalendarDays,
   Code2,
+  Edit3,
   ImagePlus,
   MapPin,
   MessageCircle,
@@ -62,13 +66,13 @@ function hasLiked(post, userId) {
   return (post?.likes || []).some((item) => String(item) === String(userId));
 }
 
-const quickEmotions = ["👍", "❤️", "😂", "🔥", "👏"];
+const quickEmotions = ["👍", "❤️", "😂", "🔥", "👏", "🎉", "💯", "🙏"];
 
 function PostsSkeleton() {
   return (
     <div className="space-y-4">
       {[1, 2, 3].map((item) => (
-        <article key={item} className="app-panel rounded-lg p-4">
+        <article key={item} className="app-panel rounded-[1.75rem] p-4">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 animate-pulse rounded-full bg-white/10" />
             <div className="flex-1 space-y-2">
@@ -87,7 +91,7 @@ function PostsSkeleton() {
 
 export default function PostsPage() {
   const fileInputRef = useRef(null);
-  const [currentUser] = useState(() => getCurrentUser());
+  const [currentUser, setCurrentUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [content, setContent] = useState("");
   const [postType, setPostType] = useState("profile");
@@ -96,6 +100,10 @@ export default function PostsPage() {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setCurrentUser(getCurrentUser());
+  }, []);
 
   useEffect(() => {
     async function fetchPosts() {
@@ -242,25 +250,46 @@ export default function PostsPage() {
     }
   }
 
+  const profilePosts = posts.filter(
+    (post) => String(post?.user?._id || "") === String(currentUser?._id || "")
+  );
+  const profileLikeCount = profilePosts.reduce(
+    (total, post) => total + (post?.likes?.length || 0),
+    0
+  );
+  const profileCommentCount = profilePosts.reduce(
+    (total, post) => total + (post?.comments?.length || 0),
+    0
+  );
+  const profileStats = [
+    { label: "Posts", value: profilePosts.length, icon: Newspaper },
+    { label: "Likes", value: profileLikeCount, icon: ThumbsUp },
+    { label: "Comments", value: profileCommentCount, icon: MessageCircle },
+  ];
+
   return (
     <div className="app-shell grid min-h-screen grid-cols-1 pb-14 text-white md:grid-cols-[minmax(18rem,22rem)_1fr] lg:grid-cols-[4.5rem_minmax(22rem,1fr)] lg:pb-0">
       <Sidebar />
 
       <main className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8">
-        <header className="mb-5 flex items-center justify-between">
+        <header className="mb-6 flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[2px] text-cyan-200">
+            <div className="app-kicker">
+              <Newspaper className="h-4 w-4" />
               Social
+            </div>
+            <h1 className="mt-4 text-4xl font-black">Posts</h1>
+            <p className="mt-2 text-sm text-slate-400">
+              Share updates, media, and quick comments across the workspace.
             </p>
-            <h1 className="text-2xl font-black">Posts</h1>
           </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-cyan-300/15 text-cyan-200">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-200">
             <Newspaper className="h-6 w-6" />
           </div>
         </header>
 
-        <section className="app-panel mb-5 overflow-hidden rounded-lg">
-          <div className="relative h-48 bg-black/25">
+        <section className="app-panel app-reveal mb-5 overflow-hidden rounded-[1.75rem]">
+          <div className="app-profile-cover relative h-52 overflow-hidden bg-black/25 sm:h-60">
             {currentUser?.coverPhoto ? (
               <Image
                 src={currentUser.coverPhoto}
@@ -270,54 +299,111 @@ export default function PostsPage() {
                 className="object-cover"
               />
             ) : (
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,0.24),rgba(15,23,42,0.82),rgba(16,185,129,0.18))]" />
+              <div className="absolute inset-0" />
             )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">
+                  Profile
+                </p>
+                <h2 className="mt-1 truncate text-3xl font-black text-white">
+                  {currentUser?.username || "Your profile"}
+                </h2>
+              </div>
+              <Link
+                href="/settings"
+                className="app-button-secondary hidden px-4 py-2.5 text-sm sm:inline-flex"
+              >
+                <Edit3 className="h-4 w-4" />
+                Edit
+              </Link>
+            </div>
           </div>
 
-          <div className="-mt-12 px-4 pb-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-[#07111c] bg-[#07111c]">
+          <div className="-mt-12 px-4 pb-5 sm:px-5">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
+              <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[1.75rem] border-4 border-[#07111c] bg-[#07111c] shadow-2xl shadow-black/30">
                 <Image
                   src={currentUser?.avatar || "/avatar.jpg"}
                   alt={currentUser?.username || "User"}
                   fill
-                  sizes="96px"
+                  sizes="112px"
                   className="object-cover"
                 />
+                <span className="absolute bottom-2 right-2 h-4 w-4 rounded-full border-2 border-[#07111c] bg-emerald-400" />
               </div>
 
-              <div className="min-w-0 flex-1 pt-10 sm:pt-0">
-                <h2 className="truncate text-2xl font-black">
-                  {currentUser?.username || "Profile"}
-                </h2>
-                <p className="mt-1 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-slate-300">
-                  {currentUser?.about || "No bio yet."}
-                </p>
+              <div className="min-w-0 flex-1 pt-9 sm:pt-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="flex items-center gap-2 truncate text-2xl font-black">
+                      <span className="truncate">{currentUser?.username || "Profile"}</span>
+                      <BadgeCheck className="h-5 w-5 shrink-0 text-cyan-200" />
+                    </h2>
+                    <p className="mt-1 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-slate-300">
+                      {currentUser?.about || "No bio yet. Add a short profile summary from settings."}
+                    </p>
+                  </div>
+                  <Link
+                    href="/settings"
+                    className="app-button-secondary inline-flex px-4 py-2.5 text-sm sm:hidden"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    Edit profile
+                  </Link>
+                </div>
 
                 <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-300">
                   {currentUser?.jobTitle && (
-                    <span className="flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5">
+                    <span className="flex items-center gap-1 rounded-xl bg-white/5 px-2.5 py-1.5">
                       <Briefcase className="h-3.5 w-3.5 text-cyan-200" />
                       {currentUser.jobTitle}
                     </span>
                   )}
                   {currentUser?.location && (
-                    <span className="flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5">
+                    <span className="flex items-center gap-1 rounded-xl bg-white/5 px-2.5 py-1.5">
                       <MapPin className="h-3.5 w-3.5 text-cyan-200" />
                       {currentUser.location}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5">
+                  <span className="flex items-center gap-1 rounded-xl bg-white/5 px-2.5 py-1.5">
                     <Code2 className="h-3.5 w-3.5 text-cyan-200" />
                     Developer: {currentUser?.developerName || "Abdo Khater"}
                   </span>
+                  {currentUser?.createdAt && (
+                    <span className="flex items-center gap-1 rounded-xl bg-white/5 px-2.5 py-1.5">
+                      <CalendarDays className="h-3.5 w-3.5 text-cyan-200" />
+                      Joined {new Date(currentUser.createdAt).getFullYear()}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {profileStats.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <div key={item.label} className="app-stat-card rounded-2xl px-3 py-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                            {item.label}
+                          </p>
+                          <Icon className="h-4 w-4 text-cyan-200" />
+                        </div>
+                        <p className="mt-1 text-xl font-black text-white">
+                          {item.value}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="app-panel mb-5 rounded-lg p-4">
+        <section className="app-panel mb-5 rounded-[1.75rem] p-4">
           <div className="flex gap-3">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full">
               <Image
@@ -334,7 +420,7 @@ export default function PostsPage() {
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
                 placeholder="What's on your mind?"
-                className="min-h-24 w-full resize-none rounded-lg border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/45"
+                className="app-input min-h-24 w-full resize-none rounded-2xl px-4 py-3 text-sm text-white"
               />
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -350,7 +436,7 @@ export default function PostsPage() {
                       key={item.value}
                       type="button"
                       onClick={() => setPostType(item.value)}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold transition ${
+                      className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-bold transition ${
                         active
                           ? "border-cyan-300/30 bg-cyan-300/15 text-cyan-100"
                           : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
@@ -364,7 +450,7 @@ export default function PostsPage() {
               </div>
 
               {selectedFile && (
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-300">
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/5 px-3 py-2 text-sm text-slate-300">
                   <span className="truncate">{selectedFile.name}</span>
                   <button
                     type="button"
@@ -385,7 +471,7 @@ export default function PostsPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                  className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
                 >
                   <ImagePlus className="h-4 w-4" />
                   Media
@@ -402,7 +488,7 @@ export default function PostsPage() {
                   type="button"
                   onClick={createPost}
                   disabled={posting || (!content.trim() && !selectedFile)}
-                  className="flex items-center gap-2 rounded-lg bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="app-button-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                   {posting ? "Posting..." : "Post"}
@@ -415,7 +501,7 @@ export default function PostsPage() {
         {loading ? (
           <PostsSkeleton />
         ) : posts.length === 0 ? (
-          <div className="app-panel-muted rounded-lg p-6 text-center text-sm text-slate-300">
+          <div className="app-empty-state rounded-[1.75rem] p-6 text-center text-sm text-slate-300">
             No posts yet.
           </div>
         ) : (
@@ -427,7 +513,7 @@ export default function PostsPage() {
                 String(post.user?._id || "") === String(currentUser?._id || "");
 
               return (
-                <article key={post._id} className="app-panel rounded-lg p-4">
+                <article key={post._id} className="app-panel rounded-[1.75rem] p-4">
                   <header className="flex items-center gap-3">
                     <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full">
                       <Image
@@ -574,13 +660,13 @@ export default function PostsPage() {
                       placeholder="Write a comment..."
                       className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45"
                     />
-                    <div className="flex items-center gap-1">
-                      {quickEmotions.slice(0, 3).map((emoji) => (
+                    <div className="flex max-w-[13rem] flex-wrap items-center justify-end gap-1">
+                      {quickEmotions.map((emoji) => (
                         <button
                           key={emoji}
                           type="button"
                           onClick={() => appendCommentEmoji(post._id, emoji)}
-                          className="rounded-lg bg-white/5 px-2 py-2 text-sm transition hover:bg-white/10"
+                          className="rounded-xl bg-white/5 px-2 py-2 text-sm transition hover:-translate-y-0.5 hover:bg-white/10"
                           title={`Add ${emoji}`}
                         >
                           {emoji}

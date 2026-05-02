@@ -5,6 +5,7 @@ import Image from "next/image";
 import { AlertCircle, MessageCircle, Send } from "lucide-react";
 
 const STORY_DURATION = 5000;
+const quickReplies = ["❤️", "🔥", "😂", "👏", "😮", "🎉"];
 
 function formatStoryTime(date) {
   if (!date) return "";
@@ -106,8 +107,8 @@ export default function StatusCard({
   if (!story) {
     return (
       <div className="flex min-h-screen items-center justify-center px-6 text-center text-slate-400">
-        <div>
-          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg bg-white/5 text-cyan-200">
+        <div className="app-empty-state app-scale-in rounded-[1.75rem] px-8 py-7">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-white/5 text-cyan-200">
             <MessageCircle className="h-7 w-7" />
           </div>
           <p className="font-semibold text-white">No status selected</p>
@@ -123,7 +124,7 @@ export default function StatusCard({
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
-      <section className="group/status relative flex h-[calc(100vh-48px)] w-full max-w-[520px] flex-col overflow-hidden rounded-lg bg-black shadow-[0_0_80px_rgba(0,0,0,0.55)] md:h-[90vh]">
+      <section className="group/status app-scale-in relative flex h-[calc(100vh-48px)] w-full max-w-[520px] flex-col overflow-hidden rounded-[2rem] bg-black shadow-[0_32px_100px_rgba(0,0,0,0.62)] ring-1 ring-white/10 md:h-[90vh]">
         {isVideo ? (
           <video
             src={mediaUrl}
@@ -160,7 +161,7 @@ export default function StatusCard({
                 className="h-1 flex-1 overflow-hidden rounded-full bg-white/25"
               >
                 <div
-                  className="h-full bg-white transition-[width] ease-linear"
+                  className="h-full rounded-full bg-white shadow-[0_0_16px_rgba(255,255,255,0.55)] transition-[width] ease-linear"
                   style={{
                     width,
                     transitionDuration:
@@ -174,13 +175,13 @@ export default function StatusCard({
 
         <header className="relative z-30 flex items-center justify-between p-5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="rounded-full border-2 border-cyan-300 p-0.5">
+            <div className="rounded-2xl border-2 border-cyan-300 p-0.5">
               <Image
                 src={story?.user?.avatar || "/avatar.jpg"}
                 alt={story?.user?.username || "avatar"}
                 width={44}
                 height={44}
-                className="size-11 rounded-full object-cover"
+                className="size-11 rounded-xl object-cover"
               />
             </div>
 
@@ -194,7 +195,7 @@ export default function StatusCard({
             </div>
           </div>
 
-          <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white backdrop-blur">
+          <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white backdrop-blur">
             {replyCount} replies
           </div>
         </header>
@@ -214,45 +215,61 @@ export default function StatusCard({
           )}
 
           {error && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-100">
+            <div className="mb-3 flex items-center gap-2 rounded-2xl border border-red-300/20 bg-red-500/15 px-3 py-2 text-sm text-red-100">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {!currentUser?._id ? (
-            <div className="rounded-lg border border-white/15 bg-white/10 px-5 py-4 text-sm font-semibold text-white/70 backdrop-blur-xl">
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-semibold text-white/70 backdrop-blur-xl">
               Sign in to reply to this status.
             </div>
           ) : isOwnStory ? (
-            <div className="rounded-lg border border-white/15 bg-white/10 px-5 py-4 text-sm font-semibold text-white/70 backdrop-blur-xl">
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-semibold text-white/70 backdrop-blur-xl">
               You cannot reply to your own status.
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={replyText}
-                disabled={isSending}
-                onChange={(e) => setReplyText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSendReply();
-                  }
-                }}
-                placeholder={`Reply to ${story?.user?.username || "user"}...`}
-                className="min-w-0 flex-1 rounded-lg border border-white/20 bg-white/10 px-5 py-4 text-sm text-white placeholder-white/45 backdrop-blur-xl transition focus:border-cyan-300 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-              />
+            <div className="space-y-3">
+              <div className="flex flex-wrap justify-center gap-2">
+                {quickReplies.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setReplyText((prev) => `${prev}${emoji}`)}
+                    className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-lg backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/20"
+                    title={`Add ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
 
-              <button
-                type="button"
-                onClick={handleSendReply}
-                disabled={!replyText.trim() || isSending}
-                className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-cyan-300 text-slate-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Send className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={replyText}
+                  disabled={isSending}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSendReply();
+                    }
+                  }}
+                  placeholder={`Reply to ${story?.user?.username || "user"}...`}
+                  className="min-w-0 flex-1 rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-sm text-white placeholder-white/45 backdrop-blur-xl transition focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleSendReply}
+                  disabled={!replyText.trim() || isSending}
+                  className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Send className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           )}
         </div>

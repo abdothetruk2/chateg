@@ -20,6 +20,7 @@ import {
 
 import Sidebar from "../components/Sidebar";
 import CallModal from "../components/CallModal";
+import UserListLoader from "../components/UserListLoader";
 import {socket }from "../socket";
 import { playNotificationSound } from "../../lib/clientPreferences";
 
@@ -122,31 +123,31 @@ export default function CallsPage() {
       <Sidebar />
 
       <aside className="app-panel flex min-h-[46vh] w-full flex-col border-b text-white md:min-h-screen md:border-b-0">
-        <div className="border-b border-white/10 p-4">
+        <div className="border-b border-white/10 p-5">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <div className="mb-1 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-300/15 text-cyan-200">
+              <div className="app-kicker">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-300/15 text-cyan-200">
                   <Phone className="h-4 w-4" />
                 </span>
-
-                <p className="text-xs font-semibold uppercase tracking-[2px] text-cyan-200/70">
-                  Voice & Video
-                </p>
+                Voice & Video
               </div>
 
-              <h2 className="text-2xl font-black tracking-tight">Calls</h2>
+              <h2 className="mt-4 text-3xl font-black tracking-tight">Calls</h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Start voice or video conversations from the same workspace.
+              </p>
             </div>
 
             <button
               type="button"
-              className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-slate-300 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white"
+              className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-300 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white"
             >
               <MoreVertical className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2.5 transition focus-within:border-cyan-300/40 focus-within:bg-white/[0.08]">
+          <div className="app-input flex items-center gap-2 rounded-2xl px-3 py-3">
             <Search className="h-4 w-4 text-slate-400" />
 
             <input
@@ -157,7 +158,7 @@ export default function CallsPage() {
             />
           </div>
 
-          <div className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-300/10 p-4">
+          <div className="app-surface mt-4 rounded-[1.5rem] p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-100">
                 <Sparkles className="h-5 w-5" />
@@ -175,22 +176,9 @@ export default function CallsPage() {
 
         <div className="thin-scrollbar flex-1 space-y-2 overflow-y-auto px-4 py-4">
           {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4].map((item) => (
-                <div
-                  key={item}
-                  className="flex animate-pulse items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.03] p-3"
-                >
-                  <div className="h-14 w-14 rounded-full bg-white/10" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-1/2 rounded bg-white/10" />
-                    <div className="h-3 w-1/3 rounded bg-white/10" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <UserListLoader count={5} label="Loading callers" avatar="rounded-2xl" />
           ) : filteredUsers.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-center">
+            <div className="app-empty-state rounded-[1.75rem] p-6 text-center">
               <UserRound className="mx-auto mb-3 h-8 w-8 text-slate-400" />
               <p className="font-semibold text-white">No users found</p>
               <p className="mt-1 text-sm text-slate-400">
@@ -206,10 +194,10 @@ export default function CallsPage() {
                 <div
                   onClick={() => setSelected(user)}
                   key={user._id || user.username}
-                  className={`group flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition hover:-translate-y-0.5 hover:bg-white/[0.06] ${
+                  className={`app-list-item group flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition ${
                     isSelected
                       ? "border-cyan-300/40 bg-cyan-300/[0.12] shadow-lg shadow-cyan-950/20"
-                      : "border-white/5 bg-white/[0.025]"
+                      : ""
                   }`}
                 >
                   <div className="relative">

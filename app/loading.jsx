@@ -1,13 +1,21 @@
 export default function Loading() {
   return (
     <div className="app-shell flex min-h-screen items-center justify-center text-white">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative h-14 w-14">
-          <div className="absolute inset-0 rounded-full border border-cyan-300/20" />
-          <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-cyan-300" />
-          <div className="absolute inset-3 rounded-full bg-cyan-300/20 blur-sm" />
+      <div className="app-scale-in app-surface flex flex-col items-center gap-5 rounded-[1.75rem] px-8 py-7">
+        <div className="relative h-16 w-16">
+          <div className="absolute inset-0 rounded-2xl border border-cyan-300/20 bg-cyan-300/10" />
+          <div className="absolute inset-1 sidebar-load-ring rounded-2xl border-2 border-transparent border-t-cyan-300" />
+          <div className="absolute inset-4 rounded-xl bg-cyan-300/25 blur-sm" />
+          <div className="absolute inset-0 grid place-items-center text-sm font-black text-cyan-100">
+            Eg
+          </div>
         </div>
-        <p className="text-sm font-semibold text-slate-400">Loading Egchat...</p>
+        <div className="text-center">
+          <p className="font-black text-white">Loading Egchat</p>
+          <p className="mt-1 text-sm font-semibold text-slate-400">
+            Preparing your workspace...
+          </p>
+        </div>
       </div>
     </div>
   );

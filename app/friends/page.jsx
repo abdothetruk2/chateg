@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/Chatbar";
+import UserListLoader from "../components/UserListLoader";
 import axios from "axios";
 import CreateGroup from "../components/CreateGroup";
 import StatusViewer from "../components/StatusViewer";
@@ -74,25 +75,6 @@ function isVideoStatus(statusItem) {
   );
 }
 
-function FriendListSkeleton() {
-  return (
-    <div className="space-y-3">
-      {[1, 2, 3, 4].map((item) => (
-        <div
-          key={item}
-          className="flex animate-pulse items-center gap-3 rounded-lg border border-white/5 bg-white/[0.03] p-3"
-        >
-          <div className="h-10 w-10 rounded-full bg-white/10" />
-          <div className="space-y-2">
-            <div className="h-3 w-28 rounded bg-white/10" />
-            <div className="h-3 w-16 rounded bg-white/5" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function FriendsPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [users, setUsers] = useState([]);
@@ -106,10 +88,14 @@ export default function FriendsPage() {
   const [friendRequests, setFriendRequests] = useState([]);
   const [sentFriendRequests, setSentFriendRequests] = useState([]);
   const [open, setopen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const inputref = useRef(null);
-  const currentUser = getCurrentUser();
   const groupedStatus = groupStatusByUser(status);
+
+  useEffect(() => {
+    setCurrentUser(getCurrentUser());
+  }, []);
 
   useEffect(() => {
     if (!currentUser?.username) return;
@@ -352,30 +338,36 @@ export default function FriendsPage() {
 
     return true;
   });
+  const requestCount = friendRequests.length;
+  const pendingCount = sentFriendRequests.length;
+  const activeStories = groupedStatus.length;
 
   return (
-    <div className="app-shell grid min-h-screen grid-cols-1 pb-14 md:grid-cols-[minmax(19rem,22rem)_1fr] lg:grid-cols-[4.5rem_minmax(18rem,22rem)_1fr] lg:pb-0">
+    <div className="app-shell grid min-h-screen grid-cols-1 pb-14 md:grid-cols-[minmax(20rem,23rem)_1fr] lg:grid-cols-[4.5rem_minmax(20rem,24rem)_1fr] lg:pb-0">
       <Sidebar />
 
       <aside
-        className={`app-panel min-h-[calc(100vh-3.5rem)] w-full flex-col border-b text-white md:flex md:h-screen md:border-b-0 ${
+        className={`app-panel min-h-[calc(100vh-4rem)] w-full flex-col border-b text-white md:flex md:h-screen md:border-b-0 ${
           selectedUser ? "hidden" : "flex"
         }`}
       >
-        <div className="border-b border-white/10 p-4">
+        <div className="border-b border-white/10 p-5">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase text-cyan-200/70">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200/80">
                 Network
               </p>
-              <h2 className="text-xl font-bold tracking-tight">Friends</h2>
+              <h2 className="text-2xl font-black tracking-tight">Friends</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Requests, active contacts, and shared status updates.
+              </p>
             </div>
-            <button className="rounded-lg p-2 text-slate-400 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white">
+            <button className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-400 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white">
               <MoreVertical className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.055] px-3 py-2 transition focus-within:border-cyan-300/35">
+          <div className="app-input flex items-center gap-2 rounded-2xl px-3 py-3">
             <Search className="h-4 w-4 text-slate-400" />
             <input
               value={search}
@@ -385,12 +377,27 @@ export default function FriendsPage() {
             />
           </div>
 
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {[
+              ["Friends", filteredUsers.length],
+              ["Requests", requestCount],
+              ["Status", activeStories || pendingCount],
+            ].map(([label, value]) => (
+              <div key={label} className="app-stat-card rounded-2xl px-3 py-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                  {label}
+                </p>
+                <p className="mt-1 text-lg font-black text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+
           <div
             onClick={() => inputref.current?.click()}
             className="no-scrollbar mt-5 flex cursor-pointer gap-3 overflow-x-auto pb-2"
           >
             <div className="group flex min-w-[58px] flex-col items-center gap-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-cyan-300/60 bg-cyan-300/10 transition group-hover:-translate-y-0.5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-dashed border-cyan-300/60 bg-cyan-300/10 transition group-hover:-translate-y-0.5">
                 <Plus className="h-5 w-5 text-cyan-200" />
                 <input
                   onChange={handleUpload}
@@ -400,7 +407,7 @@ export default function FriendsPage() {
                   className="hidden"
                 />
               </div>
-              <span className="text-xs text-slate-300">My Status</span>
+              <span className="text-xs font-semibold text-slate-300">My Status</span>
             </div>
 
             {groupedStatus.map((statusItem) => (
@@ -410,7 +417,7 @@ export default function FriendsPage() {
                   e.stopPropagation();
                   setActiveStatus(statusItem);
                 }}
-                className="flex min-w-[64px] cursor-pointer flex-col items-center gap-2 transition-transform duration-100 hover:scale-110"
+                className="flex min-w-[70px] cursor-pointer flex-col items-center gap-2 transition-transform duration-100 hover:scale-105"
               >
                 <div className="rounded-full bg-gradient-to-tr from-pink-500 via-violet-500 to-sky-500 p-[2px]">
                   <div className="relative h-14 w-14 overflow-hidden rounded-full bg-[#0b1220] p-[2px]">
@@ -433,7 +440,7 @@ export default function FriendsPage() {
                   </div>
                 </div>
 
-                <span className="max-w-[64px] truncate text-xs text-slate-300">
+                <span className="max-w-[70px] truncate text-xs font-semibold text-slate-300">
                   {String(statusItem.user?._id || "") === String(currentUser?._id || "")
                     ? "My Status"
                     : statusItem.user?.username || "Unknown"}
@@ -447,7 +454,7 @@ export default function FriendsPage() {
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`whitespace-nowrap rounded-lg border px-4 py-1.5 text-sm font-bold transition-all hover:-translate-y-0.5 ${
+                className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5 ${
                   activeFilter === filter
                     ? "border-cyan-300/30 bg-cyan-300/15 text-cyan-100"
                     : "border-white/10 bg-white/[0.045] text-slate-300 hover:bg-white/10 hover:text-white"
@@ -459,14 +466,14 @@ export default function FriendsPage() {
           </div>
         </div>
 
-        <div className="p-4">
-          <button className="hover-lift flex w-full items-center justify-between rounded-lg border border-cyan-300/15 bg-cyan-300/10 p-4 text-left">
+        <div className="p-5">
+          <button className="app-surface hover-lift flex w-full items-center justify-between rounded-[1.5rem] p-4 text-left">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-300/15">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/15">
                 <Sparkles className="h-5 w-5 text-cyan-200" />
               </div>
               <div>
-                <h4 className="font-semibold">Ask AI</h4>
+                <h4 className="font-black">Ask AI</h4>
                 <p className="text-xs leading-5 text-slate-300">
                   Summarize chats, suggest replies, translate messages, or explain code.
                 </p>
@@ -476,9 +483,9 @@ export default function FriendsPage() {
           </button>
         </div>
 
-        <div className="thin-scrollbar flex-1 space-y-3 overflow-y-auto px-4 pb-4">
+        <div className="thin-scrollbar flex-1 space-y-3 overflow-y-auto px-5 pb-5">
           {friendRequests.length > 0 && (
-            <section className="space-y-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3">
+            <section className="app-surface rounded-[1.5rem] p-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-cyan-100">
                   Friend Requests
@@ -491,7 +498,7 @@ export default function FriendsPage() {
               {friendRequests.map((requestUser) => (
                 <div
                   key={requestUser._id}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-black/15 p-2"
+                  className="app-list-item flex items-center justify-between gap-3 rounded-2xl p-2.5"
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
@@ -517,14 +524,14 @@ export default function FriendsPage() {
                     <button
                       type="button"
                       onClick={() => respondFriendRequest(requestUser, "accept")}
-                      className="rounded-lg bg-cyan-300 px-3 py-1.5 text-xs font-bold text-slate-950 transition hover:bg-cyan-200"
+                      className="rounded-xl bg-cyan-300 px-3 py-1.5 text-xs font-bold text-slate-950 transition hover:bg-cyan-200"
                     >
                       Accept
                     </button>
                     <button
                       type="button"
                       onClick={() => respondFriendRequest(requestUser, "decline")}
-                      className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold text-slate-300 transition hover:bg-white/15"
+                      className="rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-slate-300 transition hover:bg-white/15"
                     >
                       Decline
                     </button>
@@ -535,7 +542,7 @@ export default function FriendsPage() {
           )}
 
           {sentFriendRequests.length > 0 && (
-            <section className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
+            <section className="app-surface-muted rounded-[1.5rem] p-3">
               <p className="text-xs font-bold uppercase tracking-[1.5px] text-slate-400">
                 Sent requests
               </p>
@@ -553,9 +560,9 @@ export default function FriendsPage() {
           )}
 
           {loading ? (
-            <FriendListSkeleton />
+            <UserListLoader count={5} label="Loading friends" />
           ) : filteredUsers.length === 0 ? (
-            <div className="app-panel-muted rounded-lg p-4 text-sm text-slate-300">
+            <div className="app-empty-state rounded-[1.5rem] p-5 text-sm text-slate-300">
               No friends found.
             </div>
           ) : (
@@ -577,14 +584,14 @@ export default function FriendsPage() {
                     getMessages(user);
                     markRead(user);
                   }}
-                  className={`hover-lift group flex cursor-pointer items-center gap-3 rounded-lg border p-3 ${
+                  className={`app-list-item group flex cursor-pointer items-center gap-3 rounded-[1.5rem] p-3.5 ${
                     isSelected
                       ? "border-cyan-300/35 bg-cyan-300/[0.12]"
-                      : "border-transparent bg-white/[0.02]"
+                      : ""
                   }`}
                 >
                   <div className="relative">
-                    <div className="relative h-14 w-14 overflow-hidden rounded-full">
+                    <div className="relative h-14 w-14 overflow-hidden rounded-[1.35rem] ring-1 ring-white/10">
                       <Image
                         src={user?.avatar || "/avatar.jpg"}
                         alt={user?.username || "User"}
@@ -616,7 +623,7 @@ export default function FriendsPage() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <h4 className="flex items-center gap-1 truncate font-semibold">
+                    <h4 className="flex items-center gap-1 truncate font-black">
                       <span className="truncate">{user?.username || user?.name}</span>
                       {user?.verified && (
                         <BadgeCheck className="h-4 w-4 shrink-0 text-sky-400" />
@@ -633,8 +640,8 @@ export default function FriendsPage() {
           )}
         </div>
 
-        <div onClick={() => setopen(true)} className="border-t border-white/10 p-4">
-          <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 py-3 font-semibold text-slate-950">
+        <div onClick={() => setopen(true)} className="border-t border-white/10 p-5">
+          <div className="app-button-primary flex w-full py-3.5 font-semibold">
             <Plus className="h-5 w-5" />
             <span>Add Group</span>
           </div>
@@ -668,7 +675,7 @@ export default function FriendsPage() {
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-slate-400">
-              <div className="app-panel-muted rounded-lg px-6 py-5 text-center">
+              <div className="app-empty-state rounded-[1.75rem] px-6 py-5 text-center">
                 Select a friend to start chatting
               </div>
             </div>

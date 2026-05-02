@@ -5,6 +5,7 @@ import Image from "next/image";
 import { X, Send } from "lucide-react";
 
 const STORY_DURATION = 5000;
+const quickReplies = ["❤️", "🔥", "😂", "👏", "😮", "🎉"];
 
 function isVideoStory(story) {
   const mediaType = String(story?.mediaType || "").toLowerCase();
@@ -99,16 +100,17 @@ export default function StatusViewer({
   if (!status || !currentStory) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-3 py-4 backdrop-blur-md">
       <button
         onClick={onClose}
-        className="absolute right-5 top-5 z-50 text-white"
+        className="absolute right-5 top-5 z-50 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-2xl backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15"
         type="button"
+        aria-label="Close status viewer"
       >
-        <X size={28} />
+        <X size={22} />
       </button>
 
-      <div className="relative h-[80vh] w-full max-w-[400px] overflow-hidden rounded-2xl bg-black">
+      <div className="app-scale-in relative h-[84vh] w-full max-w-[420px] overflow-hidden rounded-[2rem] bg-black shadow-[0_32px_100px_rgba(0,0,0,0.62)] ring-1 ring-white/10">
         {isVideo ? (
           <video
             src={currentStory.mediaUrl}
@@ -128,9 +130,9 @@ export default function StatusViewer({
           />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/85" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/88" />
 
-        <div className="absolute left-0 right-0 top-0 z-20 flex gap-1 p-3">
+        <div className="absolute left-0 right-0 top-0 z-20 flex gap-1.5 p-4">
           {stories.map((storyItem, storyIndex) => {
             let width = "0%";
 
@@ -140,10 +142,10 @@ export default function StatusViewer({
             return (
               <div
                 key={storyItem._id || storyIndex}
-                className="h-1 flex-1 overflow-hidden rounded-full bg-white/30"
+                className="h-1 flex-1 overflow-hidden rounded-full bg-white/25"
               >
                 <div
-                  className="h-full bg-white transition-[width] ease-linear"
+                  className="h-full rounded-full bg-white shadow-[0_0_16px_rgba(255,255,255,0.55)] transition-[width] ease-linear"
                   style={{
                     width,
                     transitionDuration:
@@ -155,13 +157,26 @@ export default function StatusViewer({
           })}
         </div>
 
-        <div className="absolute left-0 right-0 top-7 z-20 p-4">
-          <p className="font-semibold text-white">
-            {currentStory.user?.username || "Unknown"}
-          </p>
-          <p className="text-xs text-white/70">
-            {index + 1} / {stories.length}
-          </p>
+        <div className="absolute left-0 right-0 top-8 z-20 p-4">
+          <div className="flex items-center gap-3">
+            <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-white/20 bg-white/10">
+              <Image
+                src={currentStory.user?.avatar || "/avatar.jpg"}
+                alt={currentStory.user?.username || "status owner"}
+                fill
+                sizes="44px"
+                className="object-cover"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate font-black text-white">
+                {currentStory.user?.username || "Unknown"}
+              </p>
+              <p className="text-xs font-bold uppercase text-white/70">
+                {index + 1} / {stories.length}
+              </p>
+            </div>
+          </div>
         </div>
 
         <button
@@ -180,35 +195,51 @@ export default function StatusViewer({
 
         <div className="absolute bottom-0 left-0 right-0 z-30 p-4">
           {isOwnStatus ? (
-            <div className="rounded-xl bg-white/10 px-4 py-3 text-center text-sm text-white/70 backdrop-blur">
-              You cannot reply to your own status
-            </div>
+          <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white/70 backdrop-blur">
+            You cannot reply to your own status
+          </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <input
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleReply();
-                  }
-                }}
-                disabled={sending}
-                placeholder={`Reply to ${
-                  currentStory.user?.username || "status"
-                }...`}
-                className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/50 outline-none backdrop-blur focus:border-cyan-300"
-              />
+            <div className="space-y-3">
+              <div className="flex justify-center gap-2">
+                {quickReplies.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setReplyText((prev) => `${prev}${emoji}`)}
+                    className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-lg backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/20"
+                    title={`Add ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
 
-              <button
-                type="button"
-                onClick={handleReply}
-                disabled={!replyText.trim() || sending}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-300 text-slate-950 disabled:opacity-50"
-              >
-                <Send size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleReply();
+                    }
+                  }}
+                  disabled={sending}
+                  placeholder={`Reply to ${
+                    currentStory.user?.username || "status"
+                  }...`}
+                  className="min-w-0 flex-1 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/50 outline-none backdrop-blur transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/15"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleReply}
+                  disabled={!replyText.trim() || sending}
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                  <Send size={18} />
+                </button>
+              </div>
             </div>
           )}
         </div>

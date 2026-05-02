@@ -183,7 +183,20 @@ function isMessageInChat(message, chat, currentUsername) {
   );
 }
 
-const messageEmotions = ["👍", "❤️", "😂", "🔥", "👏", "😮"];
+const messageEmotions = [
+  "👍",
+  "❤️",
+  "😂",
+  "🔥",
+  "👏",
+  "😮",
+  "🎉",
+  "💯",
+  "🙏",
+  "👀",
+  "😎",
+  "🤝",
+];
 
 export default function ChatWindow({
   selectedUser,
@@ -933,7 +946,7 @@ useEffect(() => {
   if (!selectedUser) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-transparent text-white">
-        <div className="app-panel-muted max-w-sm rounded-lg px-6 py-5 text-center">
+        <div className="app-empty-state app-scale-in max-w-sm rounded-[1.75rem] px-6 py-5 text-center">
           <p className="font-bold text-white">Choose a conversation</p>
           <p className="mt-2 text-sm leading-6 text-slate-400">
             Your messages, media, and calls will appear here.
@@ -1018,10 +1031,10 @@ useEffect(() => {
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="flex min-h-[calc(100vh-3.5rem)] overflow-hidden bg-transparent text-white md:h-screen">
         <main className="flex min-w-0 flex-1 flex-col border-r border-white/10">
-          <header className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-4 backdrop-blur md:px-6">
+          <header className="app-surface mx-3 mt-3 flex items-center justify-between rounded-[1.5rem] px-4 py-3 md:mx-4 md:px-5">
             <div className="min-w-0 flex-1 flex items-center gap-3">
               <button
-                className="rounded-lg p-2 transition hover:bg-white/10 md:hidden"
+                className="rounded-2xl p-2 transition hover:bg-white/10 md:hidden"
                 type="button"
                 onClick={onBack}
                 aria-label="Back to chats"
@@ -1031,7 +1044,7 @@ useEffect(() => {
 
               <div className="flex min-w-0 cursor-pointer items-center gap-3">
                 <div className="relative">
-                  <div className="relative h-11 w-11 overflow-hidden rounded-full">
+                  <div className="relative h-12 w-12 overflow-hidden rounded-[1.25rem] ring-1 ring-white/10">
                     <Image
                       src={selectedAvatar}
                       alt={selectedChatName || "User"}
@@ -1042,7 +1055,7 @@ useEffect(() => {
                   </div>
                   {selectedUser?.type !== "group" && (
                     <div
-                      className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0a0f0c] ${
+                      className={`absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-[#0a0f0c] ${
                         selectedIsOnline ? "bg-emerald-500" : "bg-slate-500"
                       }`}
                       title={selectedPresenceLabel}
@@ -1051,7 +1064,7 @@ useEffect(() => {
                 </div>
 
                 <div className="min-w-0">
-                  <h3 className="truncate font-semibold">{selectedChatName}</h3>
+                  <h3 className="truncate font-black">{selectedChatName}</h3>
 
                   <p
                     className={`text-sm ${
@@ -1068,7 +1081,7 @@ useEffect(() => {
 
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <button
-                className="flex rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex rounded-2xl border border-white/10 bg-white/5 p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 title={
                   selectedUser?.type === "group"
@@ -1083,7 +1096,7 @@ useEffect(() => {
                 <Video className="h-5 w-5" />
               </button>
               <button
-                className="flex rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex rounded-2xl border border-white/10 bg-white/5 p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 title={
                   selectedUser?.type === "group"
@@ -1097,12 +1110,12 @@ useEffect(() => {
               >
                 <Phone className="h-5 w-5" />
               </button>
-              <button className="hidden rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10 sm:flex">
+              <button className="hidden rounded-2xl border border-white/10 bg-white/5 p-2 transition hover:-translate-y-0.5 hover:bg-white/10 sm:flex">
                 <Search className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setShowContactInfo((prev) => !prev)}
-                className="rounded-lg p-2 text-cyan-200 transition hover:-translate-y-0.5 hover:bg-white/10"
+                className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-2 text-cyan-200 transition hover:-translate-y-0.5 hover:bg-cyan-300/15"
                 type="button"
               >
                 <Info className="h-5 w-5" />
@@ -1110,7 +1123,7 @@ useEffect(() => {
             </div>
           </header>
 
-          <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.045] px-4 py-3 md:px-6">
+          <div className="mx-3 mt-3 flex items-center justify-between rounded-[1.25rem] border border-white/10 bg-white/[0.045] px-4 py-3 md:mx-4 md:px-5">
             <div className="flex items-start gap-3">
               <Pin className="mt-0.5 h-4 w-4 text-cyan-200" />
               <div>
@@ -1121,7 +1134,7 @@ useEffect(() => {
               </div>
             </div>
 
-            <button className="rounded-lg p-1.5 transition hover:bg-white/10">
+            <button className="rounded-xl p-1.5 transition hover:bg-white/10">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -1130,7 +1143,7 @@ useEffect(() => {
             <div className="relative z-10 space-y-6">
               {messages.length === 0 && (
                 <div className="flex items-end gap-3">
-                  <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full">
+                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[1rem] ring-1 ring-white/10">
                     <Image
                       src={selectedAvatar}
                       alt="avatar"
@@ -1141,7 +1154,7 @@ useEffect(() => {
                   </div>
 
                   <div className="flex max-w-[85%] flex-col gap-1 md:max-w-[70%]">
-                    <div className="rounded-lg rounded-bl-sm bg-white/10 px-4 py-3">
+                    <div className="app-bubble rounded-2xl rounded-bl-md bg-white/10 px-4 py-3">
                       <p className="text-sm leading-6 text-slate-100">
                         Hello! Start your conversation here.
                       </p>
@@ -1177,7 +1190,7 @@ useEffect(() => {
                     }`}
                   >
                     {!isMe && (
-                      <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full">
+                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[1rem] ring-1 ring-white/10">
                         <Image
                           src={msg.avatar || selectedAvatar}
                           alt={msg.sender || "avatar"}
@@ -1205,29 +1218,29 @@ useEffect(() => {
                             type="button"
                             title="Delete message"
                             onClick={() => deleteMessage(msg)}
-                            className="mb-1 rounded-lg p-1.5 text-slate-400 opacity-0 transition hover:bg-red-500/10 hover:text-red-200 group-hover/message:opacity-100"
+                            className="mb-1 rounded-xl p-1.5 text-slate-400 opacity-0 transition hover:bg-red-500/10 hover:text-red-200 group-hover/message:opacity-100"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         )}
 
                         <div
-                          className={`rounded-lg px-4 py-3 ${
+                          className={`app-bubble rounded-2xl px-4 py-3 ${
                             isMe
-                              ? "rounded-br-sm bg-cyan-300 text-slate-950"
-                              : "rounded-bl-sm bg-white/10 text-slate-100"
+                              ? "rounded-br-md bg-cyan-300 text-slate-950"
+                              : "rounded-bl-md bg-white/10 text-slate-100"
                           }`}
                         >
                         {msg.storyReply?.storyId && (
                           <div
-                            className={`mb-3 overflow-hidden rounded-lg border ${
+                            className={`mb-3 overflow-hidden rounded-2xl border ${
                               isMe
                                 ? "border-white/25 bg-black/10"
                                 : "border-white/10 bg-black/20"
                             }`}
                           >
                             <div className="flex items-center gap-3 p-2.5">
-                              <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                              <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-xl bg-black/30">
                                 {storyReplyType === "video" ? (
                                   <video
                                     src={msg.storyReply.mediaUrl}
@@ -1259,24 +1272,24 @@ useEffect(() => {
                         )}
 
                         {msg.media && mediaType === "image" && (
-                          <div className="mb-3 overflow-hidden rounded-lg">
+                          <div className="mb-3 overflow-hidden rounded-2xl">
                             <Image
                               src={mediaSrc}
                               alt="chat media"
                               width={640}
                               height={420}
                               sizes="(max-width: 768px) 80vw, 520px"
-                              className="max-h-[260px] w-full rounded-lg object-cover"
+                              className="max-h-[260px] w-full rounded-2xl object-cover"
                             />
                           </div>
                         )}
 
                         {msg.media && mediaType === "video" && (
-                          <div className="mb-3 overflow-hidden rounded-xl">
+                          <div className="mb-3 overflow-hidden rounded-2xl">
                             <video
                               src={mediaSrc}
                               controls
-                              className="max-h-[260px] w-full rounded-lg"
+                              className="max-h-[260px] w-full rounded-2xl"
                             />
                           </div>
                         )}
@@ -1294,7 +1307,7 @@ useEffect(() => {
                             href={mediaSrc}
                             target="_blank"
                             rel="noreferrer"
-                            className="mb-3 flex items-center gap-3 rounded-lg bg-black/20 px-3 py-3"
+                            className="mb-3 flex items-center gap-3 rounded-2xl bg-black/20 px-3 py-3"
                           >
                             <FileText className="h-5 w-5" />
                             <span className="break-all text-sm">Open file</span>
@@ -1333,7 +1346,7 @@ useEffect(() => {
                             isMe ? "justify-end" : "justify-start"
                           }`}
                         >
-                          {messageEmotions.slice(0, 4).map((emoji) => (
+                          {messageEmotions.slice(0, 6).map((emoji) => (
                             <button
                               key={emoji}
                               type="button"
@@ -1382,7 +1395,7 @@ useEffect(() => {
 
               {typingNames.length > 0 && (
                 <div className="flex items-end gap-3">
-                  <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full">
+                  <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[1rem] ring-1 ring-white/10">
                     <Image
                       src={selectedAvatar}
                       alt="typing avatar"
@@ -1392,7 +1405,7 @@ useEffect(() => {
                     />
                   </div>
 
-                  <div className="typing-bubble rounded-lg rounded-bl-sm bg-white/10 px-4 py-3">
+                  <div className="typing-bubble app-bubble rounded-2xl rounded-bl-md bg-white/10 px-4 py-3">
                     <div className="mb-1 text-xs text-slate-400">
                       {typingNames.join(", ")} typing
                     </div>
@@ -1410,9 +1423,9 @@ useEffect(() => {
             </div>
           </div>
 
-          <footer className="border-t border-white/10 bg-[#07111c]/90 p-4 backdrop-blur md:p-6">
+          <footer className="border-t border-white/10 bg-[#07111c]/90 p-4 backdrop-blur md:p-5">
             {previewUrl && (
-              <div className="mb-4 rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="app-surface mb-4 rounded-[1.5rem] p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm text-slate-300">
                     {uploading ? "Uploading..." : "Media preview"}
@@ -1432,7 +1445,7 @@ useEffect(() => {
                   <img
                     src={previewUrl}
                     alt="preview"
-                    className="max-h-48 rounded-lg object-cover"
+                    className="max-h-48 rounded-2xl object-cover"
                   />
                 )}
 
@@ -1440,12 +1453,12 @@ useEffect(() => {
                   <video
                     src={previewUrl}
                     controls
-                    className="max-h-48 rounded-lg"
+                    className="max-h-48 rounded-2xl"
                   />
                 )}
 
                 {selectedFile && getFileType(selectedFile) === "file" && (
-                  <div className="flex items-center gap-3 rounded-lg bg-black/20 px-3 py-3">
+                  <div className="flex items-center gap-3 rounded-2xl bg-black/20 px-3 py-3">
                     <FileText className="h-5 w-5" />
                     <span className="break-all text-sm">
                       {selectedFile.name}
@@ -1456,13 +1469,13 @@ useEffect(() => {
             )}
 
             {showMessageEmotions && (
-              <div className="mb-3 flex flex-wrap gap-2 rounded-lg border border-white/10 bg-white/[0.055] p-2">
+              <div className="app-scale-in mb-3 flex flex-wrap gap-2 rounded-[1.25rem] border border-white/10 bg-white/[0.055] p-2">
                 {messageEmotions.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     onClick={() => appendMessageEmoji(emoji)}
-                    className="rounded-lg px-3 py-2 text-lg transition hover:bg-white/10"
+                    className="rounded-xl px-3 py-2 text-lg transition hover:bg-white/10"
                     title={`Add ${emoji}`}
                   >
                     {emoji}
@@ -1474,7 +1487,7 @@ useEffect(() => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => inputRef.current?.click()}
-                className="hidden rounded-lg border border-white/10 bg-white/5 p-3 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/10 sm:block"
+                className="hidden rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/10 sm:block"
                 title="Attach Files"
                 type="button"
               >
@@ -1493,7 +1506,7 @@ useEffect(() => {
 
             </div>
               <div
-                className={`focus-within:border-cyan-300/35 relative flex flex-1 items-center gap-3 overflow-hidden rounded-lg border border-white/10 bg-white/5 px-4 py-3 transition ${
+                className={`focus-within:border-cyan-300/35 relative flex flex-1 items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition ${
                   isComposing
                     ? "typing-compose-active border-cyan-300/45 bg-cyan-300/10 shadow-[0_0_28px_rgba(34,211,238,0.16)]"
                     : ""
@@ -1542,7 +1555,7 @@ useEffect(() => {
 
               <button
                 onClick={send}
-                className={`rounded-lg bg-cyan-300 p-3 text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+                className={`rounded-2xl bg-cyan-300 p-3 text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50 ${
                   message.trim() || mediaUrl ? "send-ready" : ""
                 }`}
                 disabled={(!message.trim() && !mediaUrl) || uploading}
@@ -1555,12 +1568,17 @@ useEffect(() => {
         </main>
 
         {showContactInfo && (
-        <aside className="app-panel hidden w-[320px] shrink-0 lg:flex lg:flex-col">
+        <aside className="app-panel hidden w-[340px] shrink-0 lg:flex lg:flex-col">
           <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-            <h3 className="font-semibold">Contact Info</h3>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">
+                Profile
+              </p>
+              <h3 className="mt-1 font-black">Contact Info</h3>
+            </div>
             <button
               onClick={() => setShowContactInfo(false)}
-              className="rounded-lg p-2 transition hover:-translate-y-0.5 hover:bg-white/10"
+              className="rounded-2xl border border-white/10 bg-white/5 p-2 transition hover:-translate-y-0.5 hover:bg-white/10"
               type="button"
             >
               <X className="h-5 w-5" />
@@ -1568,49 +1586,71 @@ useEffect(() => {
           </div>
 
           <div className="thin-scrollbar flex-1 overflow-y-auto px-5 py-6">
-            <div className="text-center">
-              <div className="relative mx-auto mb-4 h-24 w-24 overflow-hidden rounded-full">
-                <Image
-                  src={selectedAvatar}
-                  alt="profile"
-                  fill
-                  className="object-cover"
-
-                />
+            <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] text-center">
+              <div className="app-profile-cover relative h-28">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
               </div>
+              <div className="-mt-14 px-4 pb-5">
+                <div className="relative mx-auto mb-4 h-28 w-28 overflow-hidden rounded-[1.75rem] border-4 border-[#07111c] bg-[#07111c] shadow-2xl shadow-black/25">
+                  <Image
+                    src={selectedAvatar}
+                    alt="profile"
+                    fill
+                    className="object-cover"
+
+                  />
+                </div>
                      {isGroupAdmin && (
-  <div onClick={function(){groupAvatarInputRef.current?.click()}} className="mx-auto mb-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 p-2 text-sm transition hover:bg-white/10"> 
+  <div onClick={function(){groupAvatarInputRef.current?.click()}} className="mx-auto mb-3 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-2 text-sm transition hover:bg-white/10"> 
     <h1>Upload photo</h1>  <Upload /> 
     
     <input type="file" onChange={groupavatar}  ref={groupAvatarInputRef} className="hidden" />
     
     </div>
   )}
-              <h2 className="flex items-center justify-center gap-2 text-lg font-bold">
-                {selectedChatName}
-                <BadgeCheck className="h-5 w-5 text-sky-400" />
-              </h2>
+                <h2 className="flex items-center justify-center gap-2 text-xl font-black">
+                  {selectedChatName}
+                  <BadgeCheck className="h-5 w-5 text-sky-400" />
+                </h2>
 
-              <p className="mx-auto mt-2 max-w-[240px] whitespace-pre-wrap text-sm leading-5 text-slate-400">
-                {profileBio}
-              </p>
+                <p className="mx-auto mt-2 max-w-[250px] whitespace-pre-wrap text-sm leading-6 text-slate-400">
+                  {profileBio}
+                </p>
 
-              {selectedUser?.type !== "group" && (
-                <div className="mx-auto mt-4 flex max-w-[260px] flex-col gap-2 text-left text-xs text-slate-300">
-                  {selectedUser?.jobTitle && (
-                    <p className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-                      <Briefcase className="h-4 w-4 text-cyan-200" />
-                      <span className="truncate">{selectedUser.jobTitle}</span>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-slate-300">
+                  <div className="rounded-2xl bg-white/5 px-3 py-3">
+                    <p className="text-lg font-black text-white">
+                      {sharedMedia.length}
                     </p>
-                  )}
-                  {selectedUser?.location && (
-                    <p className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-                      <MapPin className="h-4 w-4 text-cyan-200" />
-                      <span className="truncate">{selectedUser.location}</span>
+                    Shared
+                  </div>
+                  <div className="rounded-2xl bg-white/5 px-3 py-3">
+                    <p className="text-lg font-black text-white">
+                      {selectedUser?.type === "group"
+                        ? activeGroup?.members?.length || 0
+                        : selectedPresenceLabel}
                     </p>
-                  )}
+                    {selectedUser?.type === "group" ? "Members" : "Status"}
+                  </div>
                 </div>
-              )}
+
+                {selectedUser?.type !== "group" && (
+                  <div className="mx-auto mt-4 flex max-w-[260px] flex-col gap-2 text-left text-xs text-slate-300">
+                    {selectedUser?.jobTitle && (
+                      <p className="flex items-center gap-2 rounded-2xl bg-white/5 px-3 py-2">
+                        <Briefcase className="h-4 w-4 text-cyan-200" />
+                        <span className="truncate">{selectedUser.jobTitle}</span>
+                      </p>
+                    )}
+                    {selectedUser?.location && (
+                      <p className="flex items-center gap-2 rounded-2xl bg-white/5 px-3 py-2">
+                        <MapPin className="h-4 w-4 text-cyan-200" />
+                        <span className="truncate">{selectedUser.location}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mt-8 flex items-center justify-between">

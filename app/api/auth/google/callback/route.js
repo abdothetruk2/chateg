@@ -137,7 +137,7 @@ export async function GET(req) {
     }
 
     const safeUser = sanitizeUser(user);
-    const response = NextResponse.redirect(new URL("/chat", baseUrl));
+    const response = NextResponse.redirect(new URL("/posts", baseUrl));
     response.headers.append("Set-Cookie", getAuthCookie(safeUser));
     response.cookies.delete("google_oauth_state");
 

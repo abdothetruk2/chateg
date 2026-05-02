@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import { Plus, RefreshCw } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import StatusCard from "../components/Status";
+import UserListLoader from "../components/UserListLoader";
 import { socket } from "../socket";
 
 function getCurrentUser() {
@@ -272,10 +273,14 @@ export default function StatusSidebar() {
       <Sidebar />
 
       <aside className="app-panel flex min-h-[42vh] flex-col border-b md:min-h-screen md:border-b-0">
-        <header className="flex min-h-[72px] items-center justify-between border-b border-white/10 bg-white/[0.03] px-5">
+        <header className="flex min-h-[88px] items-center justify-between border-b border-white/10 bg-white/[0.03] px-5">
           <div>
-            <h1 className="text-xl font-bold">Status</h1>
-            <p className="text-xs text-slate-400">
+            <div className="app-kicker">
+              <Plus className="h-4 w-4" />
+              Stories
+            </div>
+            <h1 className="mt-3 text-3xl font-black">Status</h1>
+            <p className="mt-1 text-sm text-slate-400">
               Recent updates and replies
             </p>
           </div>
@@ -283,7 +288,7 @@ export default function StatusSidebar() {
           <button
             type="button"
             onClick={fetchStories}
-            className="rounded-lg p-2 text-slate-300 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white"
+            className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-300 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white"
             title="Refresh status"
           >
             <RefreshCw className="h-5 w-5" />
@@ -292,7 +297,7 @@ export default function StatusSidebar() {
 
         <div className="thin-scrollbar flex-1 overflow-y-auto">
           <div className="flex gap-4 px-5 pt-4">
-            <button className="border-b-2 border-violet-400 pb-2 text-sm font-bold text-white">
+            <button className="border-b-2 border-cyan-300 pb-2 text-sm font-bold text-white">
               Recent
             </button>
             <button className="border-b-2 border-transparent pb-2 text-sm font-bold text-slate-500">
@@ -303,7 +308,7 @@ export default function StatusSidebar() {
           <button
             type="button"
             onClick={handleOpenFilePicker}
-            className="flex w-full items-center gap-4 border-l-4 border-transparent px-5 py-4 text-left transition hover:border-cyan-300/60 hover:bg-white/[0.06]"
+            className="mx-4 mt-3 flex w-auto items-center gap-4 rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-left transition hover:border-cyan-300/45 hover:bg-white/[0.07]"
           >
             <div className="relative">
               <input
@@ -322,10 +327,13 @@ export default function StatusSidebar() {
                   playsInline
                 />
               ) : (
-                <img
+                <Image
                   className="size-14 rounded-full border-2 border-cyan-300 object-cover p-0.5"
                   alt={user?.username || "me"}
                   src={preview}
+                  width={56}
+                  height={56}
+                  unoptimized
                 />
               )}
 
@@ -349,28 +357,19 @@ export default function StatusSidebar() {
           </div>
 
           {loadError && (
-            <p className="mx-5 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <p className="mx-5 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
               {loadError}
             </p>
           )}
 
           {loadingStories ? (
-            <div className="space-y-3 px-5">
-              {[1, 2, 3].map((item) => (
-                <div
-                  key={item}
-                  className="flex animate-pulse items-center gap-4"
-                >
-                  <div className="size-12 rounded-full bg-white/10" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-1/2 rounded bg-white/10" />
-                    <div className="h-3 w-1/3 rounded bg-white/10" />
-                  </div>
-                </div>
-              ))}
+            <div className="px-5">
+              <UserListLoader count={4} label="Loading stories" avatar="rounded-full" />
             </div>
           ) : groupedStories.length === 0 ? (
-            <p className="px-5 text-sm text-slate-400">No stories yet</p>
+            <div className="mx-5 app-empty-state rounded-[1.5rem] px-5 py-5 text-sm text-slate-400">
+              No stories yet
+            </div>
           ) : (
             groupedStories.map((group) => {
               const story = group.latestStory;
@@ -391,10 +390,10 @@ export default function StatusSidebar() {
                   type="button"
                   key={groupUserId || story._id}
                   onClick={() => setSelectedStory(story)}
-                  className={`flex w-full items-center gap-4 border-l-4 px-5 py-4 text-left transition hover:bg-white/[0.06] ${
+                  className={`mx-3 flex w-auto items-center gap-4 rounded-[1.5rem] border px-4 py-4 text-left transition hover:bg-white/[0.06] ${
                     isActive
                       ? "border-cyan-300 bg-cyan-300/10"
-                      : "border-transparent"
+                      : "border-white/5 bg-transparent"
                   }`}
                 >
                   <div className="rounded-full border-2 border-cyan-300 p-0.5">

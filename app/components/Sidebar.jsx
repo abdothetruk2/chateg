@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CircleAlert,
   Hash,
+  Loader2,
   Puzzle,
   MessageSquare,
   Newspaper,
@@ -17,9 +18,9 @@ import { Button } from "./ui/button";
 import { cn } from "../../lib/utils";
 import Cookies from "js-cookie";
 const items = [
+  { name: "Posts", icon: Newspaper, href: "/posts" },
   { name: "Messages", icon: MessageSquare, href: "/chat" },
   { name: "Rooms", icon: Hash, href: "/rooms" },
-  { name: "Posts", icon: Newspaper, href: "/posts" },
   { name: "Contacts", icon: Users, href: "/friends" },
   { name: "Calls", icon: Phone, href: "/calls" },
   { name: "Status", icon: CircleAlert, href: "/status" },
@@ -30,6 +31,7 @@ const items = [
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState("");
 
   useEffect(() => {
     if (!Cookies.get("user")) {
@@ -38,11 +40,10 @@ export default function Sidebar() {
   }, [router]);
 
   return (
-   
-   <aside className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-center justify-around border-t border-white/10 bg-[#07111f]/90 px-2 shadow-[0_-16px_38px_rgba(0,0,0,0.32)] backdrop-blur-xl lg:sticky lg:top-0 lg:h-screen lg:w-[72px] lg:flex-col lg:justify-start lg:gap-2 lg:border-r lg:border-t-0 lg:px-2 lg:py-3 lg:shadow-[inset_-1px_0_0_rgba(255,255,255,0.06),10px_0_36px_rgba(0,0,0,0.3)]">
+    <aside className="app-panel fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around rounded-t-[1.75rem] border-t border-white/10 px-2 shadow-[0_-24px_44px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:sticky lg:top-0 lg:h-screen lg:w-[72px] lg:flex-col lg:justify-start lg:gap-2 lg:rounded-none lg:border-r lg:border-t-0 lg:px-2 lg:py-4 lg:shadow-[inset_-1px_0_0_rgba(255,255,255,0.04),14px_0_42px_rgba(0,0,0,0.28)]">
       <Link
         href="/"
-        className="mb-2 hidden h-10 w-10 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 text-sm font-black text-cyan-100 shadow-lg shadow-cyan-950/20 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 lg:flex"
+        className="mb-3 hidden h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/12 text-sm font-black text-cyan-100 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/18 lg:flex"
       >
         Eg
       </Link>
@@ -50,32 +51,52 @@ export default function Sidebar() {
         const Icon = item.icon;
         const active =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const isPending = pendingHref === item.href && pathname !== item.href;
 
         return (
-          <Link key={item.name} href={item.href} className="shrink-0">
+          <Link
+            key={item.name}
+            href={item.href}
+            className="group relative shrink-0"
+            onClick={() => {
+              if (item.href !== pathname) setPendingHref(item.href);
+            }}
+            aria-current={active ? "page" : undefined}
+          >
             <Button
               variant="ghost"
               title={item.name}
               aria-label={item.name}
               className={cn(
-                "relative flex h-10 w-10 items-center justify-center rounded-lg border transition-all duration-200 sm:h-11 sm:w-11 lg:h-10 lg:w-10",
+                "relative flex h-11 w-11 items-center justify-center rounded-2xl border transition-all duration-200 sm:h-12 sm:w-12 lg:h-11 lg:w-11",
                 active
                   ? "border-cyan-300/35 bg-cyan-300/15 text-cyan-100 shadow-lg shadow-cyan-950/30"
-                  : "border-transparent text-slate-400 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.08] hover:text-white"
+                  : "border-transparent bg-transparent text-slate-400 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.08] hover:text-white"
               )}
             >
               {active && (
-                <span className="absolute -left-2 hidden h-5 w-1 rounded-r-full bg-cyan-300 lg:block" />
+                <>
+                  <span className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top,rgba(103,232,249,0.18),transparent_72%)]" />
+                  <span className="absolute -left-2 hidden h-6 w-1 rounded-r-full bg-cyan-300 lg:block" />
+                </>
               )}
-              <Icon size={22} />
+              {isPending ? (
+                <Loader2 className="sidebar-load-ring relative z-10" size={21} />
+              ) : (
+                <Icon className="relative z-10" size={22} />
+              )}
             </Button>
-          </Link>
+
+          <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 hidden -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950/90 px-3 py-2 text-xs font-bold text-slate-100 opacity-0 shadow-xl transition group-hover:opacity-100 lg:block">
+            {item.name}
+          </span>
+        </Link>
         );
       })}
-      <div className="mt-auto hidden w-full pb-2 text-center text-[10px] font-bold uppercase leading-4 tracking-wide text-slate-500 lg:block">
-        <span className="block text-cyan-200">Dev</span>
-        <span>Abdo</span>
-        <span className="block">Khater</span>
+      <div className="mt-auto hidden w-full pb-1 text-center text-[10px] font-bold uppercase leading-4 tracking-[0.24em] text-slate-500 lg:block">
+        <span className="block text-cyan-200">Live</span>
+        <span>Chat</span>
+        <span className="block">Suite</span>
       </div>
     </aside>
   );

@@ -44,8 +44,9 @@ export default function SettingsBar() {
   return (
     <aside className="app-panel w-full border-b p-4 text-white lg:h-screen lg:border-b-0 lg:p-5">
       <div className="mb-4 border-b border-white/10 pb-4 lg:mb-6">
-        <h1 className="text-xl font-bold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <div className="app-kicker">Preferences</div>
+        <h1 className="mt-4 text-3xl font-black tracking-tight">Settings</h1>
+        <p className="mt-2 text-sm text-slate-400">
           Manage your account preferences
         </p>
       </div>
@@ -59,7 +60,7 @@ export default function SettingsBar() {
             <li key={item.name} className="shrink-0 lg:shrink">
               <Link
                 href={item.href}
-                className={`group flex items-center gap-3 whitespace-nowrap rounded-lg border px-4 py-3 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
+                className={`group flex items-center gap-3 whitespace-nowrap rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
                   isActive
                     ? "border-cyan-300/30 bg-cyan-300/15 text-cyan-100 shadow-inner"
                     : "border-transparent text-slate-300 hover:border-white/10 hover:bg-white/[0.07] hover:text-white"

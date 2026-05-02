@@ -62,18 +62,18 @@ export default function ExtensionsPage() {
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[2px] text-cyan-200">
+            <div className="app-kicker">
               <Puzzle className="h-4 w-4" />
               Extensions
             </div>
-            <h1 className="text-3xl font-black">Product Add-ons</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+            <h1 className="mt-4 text-4xl font-black">Product Add-ons</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
               A recruiter-friendly preview of how Egchat can grow beyond chat:
               tasks, AI actions, translation, and call notes.
             </p>
           </div>
 
-          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm font-bold text-emerald-100">
+          <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm font-bold text-emerald-100">
             Portfolio roadmap ready
           </div>
         </header>
@@ -85,7 +85,7 @@ export default function ExtensionsPage() {
             return (
               <article
                 key={item.title}
-                className="rounded-lg border border-white/10 bg-white/[0.045] p-5"
+                className="app-stat-card rounded-[1.75rem] p-5"
               >
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-cyan-300/15 text-cyan-100">
                   <Icon className="h-5 w-5" />
@@ -100,7 +100,7 @@ export default function ExtensionsPage() {
         </section>
 
         <section className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="app-panel rounded-lg p-5">
+          <div className="app-panel rounded-[1.75rem] p-5">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[1.5px] text-cyan-200">
@@ -115,7 +115,7 @@ export default function ExtensionsPage() {
               {taskCards.map((task) => (
                 <article
                   key={task.title}
-                  className="rounded-lg border border-white/10 bg-black/20 p-4"
+                  className="app-surface-muted rounded-[1.5rem] p-4"
                 >
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <span className="rounded-lg bg-white/10 px-2 py-1 text-xs font-bold text-slate-200">
@@ -132,7 +132,7 @@ export default function ExtensionsPage() {
             </div>
           </div>
 
-          <aside className="rounded-lg border border-cyan-300/15 bg-cyan-300/10 p-5">
+          <aside className="app-surface rounded-[1.75rem] p-5">
             <Sparkles className="mb-4 h-7 w-7 text-cyan-100" />
             <h2 className="text-xl font-black">AI task capture</h2>
             <p className="mt-3 text-sm leading-7 text-slate-300">
@@ -140,7 +140,7 @@ export default function ExtensionsPage() {
               and create tasks with owners and due dates. The UI is ready for
               the next backend integration.
             </p>
-            <div className="mt-5 rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
               <MessageSquareText className="mb-3 h-5 w-5 text-cyan-200" />
               <p className="text-sm leading-6 text-slate-200">
                 “Summarize this room and create follow-up tasks for the team.”

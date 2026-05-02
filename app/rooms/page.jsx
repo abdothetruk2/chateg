@@ -31,7 +31,7 @@ function RoomSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {[1, 2, 3, 4, 5, 6].map((item) => (
-        <div key={item} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+        <div key={item} className="app-stat-card rounded-[1.75rem] p-4">
           <div className="mb-4 h-32 animate-pulse rounded-lg bg-white/10" />
           <div className="mb-2 h-4 w-2/3 animate-pulse rounded bg-white/10" />
           <div className="h-3 w-1/2 animate-pulse rounded bg-white/10" />
@@ -45,7 +45,11 @@ export default function RoomsPage() {
   const [rooms, setRooms] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const currentUser = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    setCurrentUser(getCurrentUser());
+  }, []);
 
   useEffect(() => {
     async function loadRooms() {
@@ -78,17 +82,17 @@ export default function RoomsPage() {
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[2px] text-cyan-200">
+            <div className="app-kicker">
               <Hash className="h-4 w-4" />
               Rooms
             </div>
-            <h1 className="text-3xl font-black">Group Rooms</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+            <h1 className="mt-4 text-4xl font-black">Group Rooms</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
               Persistent spaces for group chat, members, shared media, and room calls.
             </p>
           </div>
 
-          <div className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.055] px-3 md:max-w-sm">
+          <div className="app-input flex min-h-12 w-full items-center gap-2 rounded-2xl px-3 md:max-w-sm">
             <Search className="h-4 w-4 text-slate-400" />
             <input
               value={search}
@@ -102,7 +106,7 @@ export default function RoomsPage() {
         {loading ? (
           <RoomSkeleton />
         ) : filteredRooms.length === 0 ? (
-          <div className="app-panel-muted rounded-lg p-8 text-center text-slate-300">
+          <div className="app-empty-state rounded-[1.75rem] p-8 text-center text-slate-300">
             No rooms found.
           </div>
         ) : (
@@ -117,7 +121,7 @@ export default function RoomsPage() {
               return (
                 <article
                   key={room._id}
-                  className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.045]"
+                  className="app-stat-card overflow-hidden rounded-[1.75rem]"
                 >
                   <div className="relative h-36 bg-black/25">
                     {room?.avatar ? (
@@ -133,7 +137,7 @@ export default function RoomsPage() {
                         <Hash className="h-12 w-12 text-cyan-100" />
                       </div>
                     )}
-                    <div className="absolute left-3 top-3 rounded-lg border border-white/10 bg-black/35 px-2 py-1 text-xs font-bold text-white backdrop-blur">
+                    <div className="absolute left-3 top-3 rounded-xl border border-white/10 bg-black/35 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
                       {isMember ? "Joined" : "Open"}
                     </div>
                   </div>
@@ -149,21 +153,21 @@ export default function RoomsPage() {
                           Managed by {adminName}
                         </p>
                       </div>
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-300/15 text-cyan-100">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-100">
                         <Users className="h-5 w-5" />
                       </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-300">
-                      <div className="rounded-lg bg-white/5 px-2 py-3">
+                      <div className="rounded-2xl bg-white/5 px-2 py-3">
                         <Users className="mx-auto mb-1 h-4 w-4 text-cyan-200" />
                         {memberCount}
                       </div>
-                      <div className="rounded-lg bg-white/5 px-2 py-3">
+                      <div className="rounded-2xl bg-white/5 px-2 py-3">
                         <MessageSquareText className="mx-auto mb-1 h-4 w-4 text-emerald-200" />
                         Chat
                       </div>
-                      <div className="rounded-lg bg-white/5 px-2 py-3">
+                      <div className="rounded-2xl bg-white/5 px-2 py-3">
                         <Video className="mx-auto mb-1 h-4 w-4 text-amber-200" />
                         Call
                       </div>
@@ -177,13 +181,13 @@ export default function RoomsPage() {
                       <div className="flex shrink-0 gap-2">
                         <Link
                           href="/chat"
-                          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
                         >
                           Chat
                         </Link>
                         <Link
                           href="/chat"
-                          className="rounded-lg bg-cyan-300 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-cyan-200"
+                          className="rounded-xl bg-cyan-300 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-cyan-200"
                         >
                           Call
                         </Link>

@@ -14,6 +14,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import UserListLoader from "../components/UserListLoader";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { playNotificationSound } from "../../lib/clientPreferences";
@@ -32,13 +33,13 @@ function loadSocket() {
 const ChatWindow = dynamic(() => import("../components/Chatbar"), {
   loading: () => (
     <div className="flex h-full flex-col gap-4 px-4 py-5 md:px-6">
-      <div className="h-14 animate-pulse rounded-lg bg-white/10" />
+      <div className="skeleton-shimmer h-16 rounded-[1.5rem] bg-white/10" />
       <div className="flex-1 space-y-4 py-6">
-        <div className="h-12 w-2/5 animate-pulse rounded-lg bg-white/10" />
-        <div className="ml-auto h-12 w-1/2 animate-pulse rounded-lg bg-cyan-300/20" />
-        <div className="h-24 w-3/5 animate-pulse rounded-lg bg-white/10" />
+        <div className="skeleton-shimmer h-12 w-2/5 rounded-2xl bg-white/10" />
+        <div className="skeleton-shimmer ml-auto h-12 w-1/2 rounded-2xl bg-cyan-300/20" />
+        <div className="skeleton-shimmer h-24 w-3/5 rounded-2xl bg-white/10" />
       </div>
-      <div className="h-14 animate-pulse rounded-lg bg-white/10" />
+      <div className="skeleton-shimmer h-16 rounded-[1.5rem] bg-white/10" />
     </div>
   ),
 });
@@ -50,25 +51,6 @@ const CreateGroup = dynamic(() => import("../components/CreateGroup"), {
 const StatusViewer = dynamic(() => import("../components/StatusViewer"), {
   ssr: false,
 });
-
-function ChatListSkeleton() {
-  return (
-    <div className="space-y-3">
-      {[1, 2, 3, 4].map((item) => (
-        <div
-          key={item}
-          className="flex animate-pulse items-center gap-3 rounded-lg border border-white/5 bg-white/[0.03] p-3"
-        >
-          <div className="h-10 w-10 rounded-full bg-white/10" />
-          <div className="space-y-2">
-            <div className="h-3 w-28 rounded bg-white/10" />
-            <div className="h-3 w-16 rounded bg-white/5" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function runWhenIdle(callback) {
   if (typeof window === "undefined") return undefined;
@@ -162,18 +144,24 @@ export default function Home() {
   const [read, setread] = useState([]);
   const [open, setopen] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
 
   const inputref = useRef(null);
   const socketRef = useRef(null);
-  const currentUser = getCurrentUser();
   const isAuthenticated = Boolean(currentUser?._id);
   const groupedStatus = groupStatusByUser(status);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    setCurrentUser(getCurrentUser());
+    setAuthReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (authReady && !isAuthenticated) {
       router.replace("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [authReady, isAuthenticated, router]);
 
   async function getMessages(user) {
     try {
@@ -659,8 +647,11 @@ export default function Home() {
 
     return true;
   });
+  const unreadThreads = filteredUsers.filter((user) => getUnreadCount(user) > 0).length;
+  const groupCount = users.filter((user) => user?.type === "group").length;
+  const storyCount = groupedStatus.length;
 
-  if (!isAuthenticated) {
+  if (!authReady || !isAuthenticated) {
     return (
       <div className="app-shell flex min-h-screen items-center justify-center px-6 text-slate-300">
         <div className="app-panel-muted rounded-lg px-6 py-5">
@@ -671,29 +662,32 @@ export default function Home() {
   }
 
   return (
-    <div className="app-shell grid min-h-screen grid-cols-1 pb-14 md:grid-cols-[minmax(19rem,22rem)_1fr] lg:grid-cols-[4.5rem_minmax(18rem,22rem)_1fr] lg:pb-0">
+    <div className="app-shell grid min-h-screen grid-cols-1 pb-14 md:grid-cols-[minmax(20rem,23rem)_1fr] lg:grid-cols-[4.5rem_minmax(20rem,24rem)_1fr] lg:pb-0">
       <Sidebar />
 
       <aside
-        className={`app-panel min-h-[calc(100vh-3.5rem)] w-full flex-col border-b text-white md:flex md:h-screen md:border-b-0 ${
+        className={`app-panel min-h-[calc(100vh-4rem)] w-full flex-col border-b text-white md:flex md:h-screen md:border-b-0 ${
           selectedUser ? "hidden" : "flex"
         }`}
       >
-        <div className="border-b border-white/10 p-4">
+        <div className="border-b border-white/10 p-5">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase text-cyan-200/70">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200/80">
                 Workspace
               </p>
-              <h2 className="text-xl font-bold tracking-tight">Messages</h2>
+              <h2 className="text-2xl font-black tracking-tight">Messages</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Direct chats, groups, and live status activity.
+              </p>
             </div>
 
-            <button className="rounded-lg p-2 text-slate-400 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white">
+            <button className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-400 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white">
               <MoreVertical className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="focus-within:border-cyan-300/35 focus-within:bg-white/[0.075] flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.055] px-3 py-2 transition">
+          <div className="app-input flex items-center gap-2 rounded-2xl px-3 py-3">
             <Search className="h-4 w-4 text-slate-400" />
             <input
               value={search}
@@ -703,12 +697,27 @@ export default function Home() {
             />
           </div>
 
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {[
+              ["Chats", filteredUsers.length],
+              ["Unread", unreadThreads],
+              ["Groups", groupCount || storyCount],
+            ].map(([label, value]) => (
+              <div key={label} className="app-stat-card rounded-2xl px-3 py-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                  {label}
+                </p>
+                <p className="mt-1 text-lg font-black text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+
           <div
             onClick={() => inputref.current?.click()}
             className="no-scrollbar mt-5 flex cursor-pointer gap-3 overflow-x-auto pb-2"
           >
             <div className="group flex min-w-[58px] flex-col items-center gap-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-cyan-300/60 bg-cyan-300/10 transition group-hover:-translate-y-0.5 group-hover:bg-cyan-300/15">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-dashed border-cyan-300/60 bg-cyan-300/10 transition group-hover:-translate-y-0.5 group-hover:bg-cyan-300/15">
                 <Plus className="h-5 w-5 text-cyan-200" />
 
                 <input
@@ -720,7 +729,7 @@ export default function Home() {
                 />
               </div>
 
-              <span className="text-xs text-slate-300">My Status</span>
+              <span className="text-xs font-semibold text-slate-300">My Status</span>
             </div>
 
             {groupedStatus.map((statusItem) => (
@@ -730,7 +739,7 @@ export default function Home() {
                   e.stopPropagation();
                   setActiveStatus(statusItem);
                 }}
-                className="flex min-w-[64px] cursor-pointer flex-col items-center gap-2 transition-transform duration-100 hover:scale-110"
+                className="flex min-w-[70px] cursor-pointer flex-col items-center gap-2 transition-transform duration-100 hover:scale-105"
               >
                 <div
                   className={`rounded-full p-[2px] ${
@@ -759,7 +768,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <span className="max-w-[64px] truncate text-xs text-slate-300">
+                <span className="max-w-[70px] truncate text-xs font-semibold text-slate-300">
                   {String(statusItem.user?._id || "") === String(currentUser?._id || "")
                     ? "My Status"
                     : statusItem.user?.username || "Unknown"}
@@ -779,7 +788,7 @@ export default function Home() {
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`whitespace-nowrap rounded-lg border px-4 py-1.5 text-sm font-bold transition-all hover:-translate-y-0.5 ${
+                className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5 ${
                   activeFilter === filter
                     ? "border-cyan-300/30 bg-cyan-300/15 text-cyan-100"
                     : "border-white/10 bg-white/[0.045] text-slate-300 hover:bg-white/10 hover:text-white"
@@ -791,14 +800,14 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="p-4">
-          <button className="hover-lift flex w-full items-center justify-between rounded-lg border border-cyan-300/15 bg-cyan-300/10 p-4 text-left">
+        <div className="p-5">
+          <button className="app-surface hover-lift flex w-full items-center justify-between rounded-[1.5rem] p-4 text-left">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-300/15">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/15">
                 <Sparkles className="h-5 w-5 text-cyan-200" />
               </div>
               <div className="text-left">
-                <h4 className="font-semibold">Ask AI</h4>
+                <h4 className="font-black">Ask AI</h4>
                 <p className="text-xs leading-5 text-slate-300">
                   Summarize chats, suggest replies, translate messages, or explain code.
                 </p>
@@ -809,11 +818,11 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="thin-scrollbar flex-1 space-y-2 overflow-y-auto px-4 pb-4">
+        <div className="thin-scrollbar flex-1 space-y-2 overflow-y-auto px-5 pb-5">
           {loading ? (
-            <ChatListSkeleton />
+            <UserListLoader count={5} label="Loading chats" />
           ) : filteredUsers.length === 0 ? (
-            <div className="app-panel-muted rounded-lg p-4 text-sm text-slate-300">
+            <div className="app-empty-state rounded-[1.5rem] p-5 text-sm text-slate-300">
               No users found.
             </div>
           ) : (
@@ -832,14 +841,14 @@ export default function Home() {
                     getMessages(user);
                     markMessagesRead(user);
                   }}
-                  className={`hover-lift group flex cursor-pointer items-center gap-3 rounded-lg border p-3 ${
+                  className={`app-list-item group flex cursor-pointer items-center gap-3 rounded-[1.5rem] p-3.5 ${
                     isSelected
                       ? "border-cyan-300/35 bg-cyan-300/[0.12] shadow-lg shadow-cyan-950/20"
-                      : "border-transparent bg-white/[0.02]"
+                      : ""
                   }`}
                 >
                   <div className="relative">
-                    <div className="relative h-14 w-14 overflow-hidden rounded-full">
+                    <div className="relative h-14 w-14 overflow-hidden rounded-[1.35rem] ring-1 ring-white/10">
                       <Image
                         src={user?.avatar || "/avatar.jpg"}
                         alt={user?.username || user?.name || "User"}
@@ -856,7 +865,7 @@ export default function Home() {
                     )}
 
                     {user?.type === "channel" ? (
-                      <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-white ring-2 ring-[#0b1220]">
+                        <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-white ring-2 ring-[#0b1220]">
                         <Megaphone className="h-3.5 w-3.5" />
                       </div>
                     ) : user?.type === "group" ? (
@@ -873,7 +882,7 @@ export default function Home() {
 
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-start justify-between gap-3">
-                      <h4 className="flex items-center gap-1 truncate font-semibold">
+                      <h4 className="flex items-center gap-1 truncate font-black">
                         <span className="truncate">
                           {user?.username || user?.name}
                         </span>
@@ -920,11 +929,8 @@ export default function Home() {
           )}
         </div>
 
-        <div
-          onClick={() => setopen(true)}
-          className="border-t border-white/10 p-4"
-        >
-          <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-200">
+        <div onClick={() => setopen(true)} className="border-t border-white/10 p-5">
+          <div className="app-button-primary flex w-full py-3.5 font-semibold">
             <Plus className="h-5 w-5" />
             <span>Add Group</span>
           </div>
@@ -960,8 +966,8 @@ export default function Home() {
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-slate-400">
-              <div className="app-panel-muted max-w-md rounded-lg px-6 py-6 text-center">
-                <h2 className="text-lg font-black text-white">
+              <div className="app-empty-state max-w-md rounded-[1.75rem] px-6 py-6 text-center">
+                <h2 className="text-xl font-black text-white">
                   Choose a conversation
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-300">

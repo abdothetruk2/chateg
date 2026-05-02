@@ -1,9 +1,15 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "./components/ThemeProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
   display: "swap",
 });
@@ -57,7 +63,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="en"
+      className={`${manrope.variable} ${spaceGrotesk.variable} ${geistMono.variable}`}
+    >
       <body className="app-shell min-h-screen flex flex-col font-sans antialiased">
         <ThemeProvider>
           <main className="flex-1">{children}</main>
