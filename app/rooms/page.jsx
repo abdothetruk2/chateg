@@ -141,7 +141,7 @@ export default function RoomsPage() {
                       </div>
                     )}
                     <div className="absolute left-3 top-3 rounded-xl border border-white/10 bg-black/35 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
-                      {isMember ? "Joined" : "Open"}
+                      {room?.isPublic ? "Public" : isMember ? "Joined" : "Open"}
                     </div>
                   </div>
 
@@ -179,7 +179,9 @@ export default function RoomsPage() {
                     <div className="mt-4 flex items-center justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-2 text-xs text-slate-400">
                         <ShieldCheck className="h-4 w-4 shrink-0 text-cyan-200" />
-                        <span className="truncate">Admin approvals enabled</span>
+                        <span className="truncate">
+                          {room?.isPublic ? "All members included" : "Admin approvals enabled"}
+                        </span>
                       </div>
                       <div className="flex shrink-0 gap-2">
                         <Link

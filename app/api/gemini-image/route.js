@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
-const DEFAULT_IMAGE_MODEL = "gemini-3-pro-image-preview";
+const DEFAULT_IMAGE_MODEL = "gemini-latest-flash-image-preview";
 
 function toImageUrl(data, mimeType = "image/png", uri = "") {
   if (data) {

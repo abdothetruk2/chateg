@@ -13,6 +13,7 @@ import {
   Stars,
   BadgeCheck,
   Megaphone,
+  GripVertical,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import UserListLoader from "../components/UserListLoader";
@@ -147,6 +148,8 @@ export default function Home() {
   const [typingUser, setTypingUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [draggingUserId, setDraggingUserId] = useState("");
+  const [dragOverUserId, setDragOverUserId] = useState("");
 
   const inputref = useRef(null);
   const socketRef = useRef(null);
@@ -634,6 +637,44 @@ export default function Home() {
     ).length;
   }
 
+  function reorderUsers(sourceId, targetId) {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+
+    setUsers((prev) => {
+      const sourceIndex = prev.findIndex((user) => getChatId(user) === sourceId);
+      const targetIndex = prev.findIndex((user) => getChatId(user) === targetId);
+
+      if (sourceIndex === -1 || targetIndex === -1) return prev;
+
+      const next = [...prev];
+      const [movedUser] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, movedUser);
+
+      return next;
+    });
+  }
+
+  function handleUserDragStart(event, user) {
+    const userId = getChatId(user);
+    if (!userId) return;
+
+    setDraggingUserId(userId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", userId);
+  }
+
+  function handleUserDrop(event, targetUser) {
+    event.preventDefault();
+
+    const sourceId =
+      event.dataTransfer.getData("text/plain") || draggingUserId;
+    const targetId = getChatId(targetUser);
+
+    reorderUsers(sourceId, targetId);
+    setDraggingUserId("");
+    setDragOverUserId("");
+  }
+
   const filteredUsers = users.filter((user) => {
     const userName = (user?.username || user?.name || "").toLowerCase();
     const matchesSearch = userName.includes(search.toLowerCase());
@@ -831,26 +872,48 @@ export default function Home() {
             </div>
           ) : (
             filteredUsers.map((user) => {
-                
-              const isSelected = selectedUser?._id === user._id;
+              const userId = getChatId(user);
+              const isSelected = getChatId(selectedUser) === userId;
               const unreadCount = getUnreadCount(user);
               const isOnline = Boolean(user?.status);
+              const isDragging = draggingUserId === userId;
+              const isDragOver = dragOverUserId === userId;
 
               return (
                 <div
-                  key={user._id}
+                  key={userId}
+                  draggable
+                  onDragStart={(event) => handleUserDragStart(event, user)}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    setDragOverUserId(userId);
+                  }}
+                  onDragLeave={() => setDragOverUserId("")}
+                  onDrop={(event) => handleUserDrop(event, user)}
+                  onDragEnd={() => {
+                    setDraggingUserId("");
+                    setDragOverUserId("");
+                  }}
                   onClick={() => {
                     setSelectedUser(user);
                     setTypingUser(null);
                     getMessages(user);
                     markMessagesRead(user);
                   }}
-                  className={`app-list-item group flex cursor-pointer items-center gap-3 rounded-[1.5rem] p-3.5 ${
+                  className={`app-list-item group flex cursor-grab items-center gap-3 rounded-[1.5rem] p-3.5 active:cursor-grabbing ${
                     isSelected
                       ? "border-cyan-300/35 bg-cyan-300/[0.12] shadow-lg shadow-cyan-950/20"
                       : ""
+                  } ${
+                    isDragOver
+                      ? "translate-x-1 border-cyan-300/45 ring-2 ring-cyan-300/25"
+                      : ""
+                  } ${
+                    isDragging ? "scale-[0.98] opacity-55" : ""
                   }`}
                 >
+                  <GripVertical className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-cyan-200" />
                   <div className="relative">
                     <div className="relative h-14 w-14 overflow-hidden rounded-[1.35rem] ring-1 ring-white/10">
                       <Image
@@ -905,6 +968,13 @@ export default function Home() {
                       {typingUser === getChatName(user) ? (
                         <p className="truncate font-semibold text-cyan-300">
                           typing now
+                        </p>
+                      ) : user?.isPublic ? (
+                        <p className="truncate">
+                          <span className="font-bold text-cyan-300">
+                            Public •
+                          </span>{" "}
+                          All members
                         </p>
                       ) : user?.type === "group" ? (
                         <p className="truncate">

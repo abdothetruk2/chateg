@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import connectDB from "../../../../../lib/mongoose";
 import { getAuthCookie, sanitizeUser } from "../../../../../lib/auth";
 import { hashPassword } from "../../../../../lib/password";
+import { ensurePublicRoomIncludesUser } from "../../../../../lib/publicRoom";
 import User from "../../../../../models/User";
 
 function normalizeUsername(value = "", fallback = "google-user") {
@@ -135,6 +136,8 @@ export async function GET(req) {
         { returnDocument: "after" }
       );
     }
+
+    await ensurePublicRoomIncludesUser(user._id);
 
     const safeUser = sanitizeUser(user);
     const response = NextResponse.redirect(new URL("/posts", baseUrl));

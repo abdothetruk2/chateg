@@ -14,9 +14,10 @@ function getBaseUrl(req) {
 
 export async function GET(req) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const baseUrl = getBaseUrl(req);
 
-  if (!clientId) {
+  if (!clientId || !clientSecret) {
     return NextResponse.redirect(new URL("/login?oauth=google-missing", baseUrl));
   }
 

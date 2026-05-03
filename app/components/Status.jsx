@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { AlertCircle, MessageCircle, Send } from "lucide-react";
+import { allEmotionEmojis } from "../../lib/emotions";
 
 const STORY_DURATION = 5000;
-const quickReplies = ["❤️", "🔥", "😂", "👏", "😮", "🎉"];
 
 function formatStoryTime(date) {
   if (!date) return "";
@@ -231,8 +231,8 @@ export default function StatusCard({
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex flex-wrap justify-center gap-2">
-                {quickReplies.map((emoji) => (
+              <div className="flex max-h-28 flex-wrap justify-center gap-2 overflow-y-auto">
+                {allEmotionEmojis.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"

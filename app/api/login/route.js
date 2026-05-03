@@ -1,6 +1,7 @@
 import connectDB from "../../../lib/mongoose";
 import User from "../../../models/User"
 import { sanitizeUser } from "../../../lib/auth";
+import { ensurePublicRoomIncludesUser } from "../../../lib/publicRoom";
 import {
   hashPassword,
   needsPasswordRehash,
@@ -55,6 +56,7 @@ export async function POST(req) {
       { ...passwordUpdate, status: true, displayname: "online" },
       { returnDocument: "after" }
     );
+    await ensurePublicRoomIncludesUser(user._id);
 
     const safeUser = sanitizeUser(user);
     safeUser.status = true;

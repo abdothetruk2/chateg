@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "../../../lib/mongoose";
 import { sanitizeUser } from "../../../lib/auth";
 import { hashPassword } from "../../../lib/password";
+import { ensurePublicRoom } from "../../../lib/publicRoom";
 import Group from "../../../models/Group";
 import Messages from "../../../models/Messages";
 import User from "../../../models/User";
@@ -50,6 +51,7 @@ export async function POST() {
     const [recruiter, engineer] = await Promise.all(
       demoUsers.map((profile) => ensureDemoUser(profile))
     );
+    await ensurePublicRoom();
 
     const room = await Group.findOneAndUpdate(
       { name: "Egchat Demo Room" },

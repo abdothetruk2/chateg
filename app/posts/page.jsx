@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import axios from "axios";
+import { allEmotionEmojis } from "../../lib/emotions";
 import {
   BadgeCheck,
   Briefcase,
@@ -66,8 +67,6 @@ function hasLiked(post, userId) {
   return (post?.likes || []).some((item) => String(item) === String(userId));
 }
 
-const quickEmotions = ["👍", "❤️", "😂", "🔥", "👏", "🎉", "💯", "🙏"];
-
 function PostsSkeleton() {
   return (
     <div className="space-y-4">
@@ -95,6 +94,7 @@ function PostsSkeleton() {
 
 export default function PostsPage() {
   const fileInputRef = useRef(null);
+  const commentInputRefs = useRef({});
   const [currentUser, setCurrentUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [content, setContent] = useState("");
@@ -102,6 +102,12 @@ export default function PostsPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [commentDrafts, setCommentDrafts] = useState({});
   const [openEmotionPostId, setOpenEmotionPostId] = useState("");
+  const [coverPointer, setCoverPointer] = useState({
+    x: 50,
+    y: 50,
+    tiltX: 0,
+    tiltY: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
@@ -232,6 +238,35 @@ export default function PostsPage() {
       [postId]: `${prev[postId] || ""}${emoji}`,
     }));
     setOpenEmotionPostId("");
+    commentInputRefs.current[postId]?.focus();
+  }
+
+  function handleCoverPointerMove(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(
+      0,
+      Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)
+    );
+    const y = Math.max(
+      0,
+      Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)
+    );
+
+    setCoverPointer({
+      x,
+      y,
+      tiltX: (50 - y) / 22,
+      tiltY: (x - 50) / 24,
+    });
+  }
+
+  function resetCoverPointer() {
+    setCoverPointer({
+      x: 50,
+      y: 50,
+      tiltX: 0,
+      tiltY: 0,
+    });
   }
 
   async function deletePost(post) {
@@ -310,20 +345,31 @@ export default function PostsPage() {
         </header>
 
         <section className="app-premium-card app-gradient-accent app-reveal mb-5 overflow-hidden rounded-[1.75rem]">
-          <div className="app-profile-cover relative h-52 overflow-hidden bg-black/25 sm:h-60">
+          <div
+            className="app-profile-cover app-cover-photo-effect relative h-52 overflow-hidden bg-black/25 sm:h-60"
+            onPointerMove={handleCoverPointerMove}
+            onPointerLeave={resetCoverPointer}
+            style={{
+              "--cover-x": `${coverPointer.x}%`,
+              "--cover-y": `${coverPointer.y}%`,
+              "--cover-tilt-x": `${coverPointer.tiltX}deg`,
+              "--cover-tilt-y": `${coverPointer.tiltY}deg`,
+            }}
+          >
             {currentUser?.coverPhoto ? (
               <Image
                 src={currentUser.coverPhoto}
                 alt={`${currentUser?.username || "User"} cover`}
                 fill
                 sizes="(max-width: 768px) 92vw, 720px"
-                className="object-cover"
+                className="app-cover-photo-image object-cover"
               />
             ) : (
-              <div className="absolute inset-0" />
+              <div className="app-cover-photo-placeholder absolute inset-0" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
+            <div className="app-cover-photo-sheen" />
+            <div className="absolute inset-0 z-[3] bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 z-[4] flex items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">
                   Profile
@@ -670,8 +716,8 @@ export default function PostsPage() {
 
                   <div className="mt-3 space-y-2">
                     {openEmotionPostId === post._id && (
-                      <div className="app-scale-in flex w-fit max-w-full flex-wrap items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.055] p-2">
-                        {quickEmotions.map((emoji) => (
+                      <div className="app-scale-in flex max-h-44 w-fit max-w-full flex-wrap items-center gap-1 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.055] p-2">
+                        {allEmotionEmojis.map((emoji) => (
                           <button
                             key={emoji}
                             type="button"
@@ -687,6 +733,13 @@ export default function PostsPage() {
 
                     <div className="flex items-center gap-2">
                       <input
+                        ref={(input) => {
+                          if (input) {
+                            commentInputRefs.current[post._id] = input;
+                          } else {
+                            delete commentInputRefs.current[post._id];
+                          }
+                        }}
                         value={commentDrafts[post._id] || ""}
                         onChange={(event) =>
                           setCommentDrafts((prev) => ({

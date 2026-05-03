@@ -8,6 +8,7 @@ import Cookies from "js-cookie";
 import Image from "next/image";
 import axios from "axios";
 import { playNotificationSound } from "../../lib/clientPreferences";
+import { allEmotionEmojis } from "../../lib/emotions";
 import {
   ArrowLeft,
   Video,
@@ -183,21 +184,6 @@ function isMessageInChat(message, chat, currentUsername) {
   );
 }
 
-const messageEmotions = [
-  "👍",
-  "❤️",
-  "😂",
-  "🔥",
-  "👏",
-  "😮",
-  "🎉",
-  "💯",
-  "🙏",
-  "👀",
-  "😎",
-  "🤝",
-];
-
 export default function ChatWindow({
   selectedUser,
   selectedMessages = [],
@@ -229,6 +215,7 @@ export default function ChatWindow({
     
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const messageInputRef = useRef(null);
   const groupAvatarInputRef = useRef(null);
   const typingTimeoutRef = useRef({});
   const lastTypingTimeRef = useRef(0);
@@ -561,7 +548,7 @@ export default function ChatWindow({
   function appendMessageEmoji(emoji) {
     setMessage((prev) => `${prev}${emoji}`);
     setShowMessageEmotions(false);
-    inputRef.current?.focus();
+    messageInputRef.current?.focus();
   }
   const upsertParentMessage = useCallback(
     (incomingMessage) => {
@@ -1434,8 +1421,8 @@ useEffect(() => {
             )}
 
             {showMessageEmotions && (
-              <div className="app-scale-in mb-3 flex flex-wrap gap-2 rounded-[1.25rem] border border-white/10 bg-white/[0.055] p-2">
-                {messageEmotions.map((emoji) => (
+              <div className="app-scale-in mb-3 flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-[1.25rem] border border-white/10 bg-white/[0.055] p-2">
+                {allEmotionEmojis.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
@@ -1485,11 +1472,12 @@ useEffect(() => {
                   className="text-slate-400 transition hover:text-white"
                   type="button"
                   onClick={() => setShowMessageEmotions((prev) => !prev)}
-                >
+                >scm-history-item:/home/abdokhater/chateg?%7B%22repositoryId%22%3A%22scm0%22%2C%22historyItemId%22%3A%22aa5fd1684ce0458707d5918a169a086011e252ef%22%2C%22historyItemParentId%22%3A%2228b0d3a262284b5ebc6e1b003bd966f08507a3c6%22%2C%22historyItemDisplayId%22%3A%22aa5fd16%22%7D
                   <Smile className="h-5 w-5" />
                 </button>
 
                 <input
+                  ref={messageInputRef}
                   placeholder="Type a message..."
                   className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-400 focus:outline-none"
                   type="text"

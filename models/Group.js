@@ -32,6 +32,15 @@ const GroupSchema = new mongoose.Schema(
       type: String,
       default: "group",
     },
+    isPublic: {
+      type: Boolean,
+      default: false,
+    },
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
    approve: [
       {
         type: mongoose.Schema.Types.ObjectId,

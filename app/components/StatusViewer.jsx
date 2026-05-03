@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { X, Send } from "lucide-react";
+import { allEmotionEmojis } from "../../lib/emotions";
 
 const STORY_DURATION = 5000;
-const quickReplies = ["❤️", "🔥", "😂", "👏", "😮", "🎉"];
 
 function isVideoStory(story) {
   const mediaType = String(story?.mediaType || "").toLowerCase();
@@ -200,8 +200,8 @@ export default function StatusViewer({
           </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex justify-center gap-2">
-                {quickReplies.map((emoji) => (
+              <div className="flex max-h-28 flex-wrap justify-center gap-2 overflow-y-auto">
+                {allEmotionEmojis.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"

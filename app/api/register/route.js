@@ -1,7 +1,9 @@
 import connectDB from "../../../lib/mongoose";
 import User from "../../../models/User"
+import { NextResponse } from "next/server";
 import { sanitizeUser } from "../../../lib/auth";
 import { hashPassword } from "../../../lib/password";
+import { ensurePublicRoomIncludesUser } from "../../../lib/publicRoom";
 
 export async function POST(req) {
   try {
@@ -11,7 +13,7 @@ export async function POST(req) {
     const password = typeof body.password === "string" ? body.password : "";
 
     if (!username || !email || password.length < 6) {
-      return Response.json(
+      return NextResponse.json(
         { error: "Username, email, and a 6+ character password are required." },
         { status: 400 }
       );
@@ -26,12 +28,13 @@ export async function POST(req) {
       status: true,
       displayname: "online",
     });
+    await ensurePublicRoomIncludesUser(user._id);
 
     const safeUser = sanitizeUser(user);
     safeUser.status = true;
     safeUser.displayname = "online";
 
-    return Response.json(
+    return NextResponse.json(
       {
         message: "Register successful",
         user: safeUser,
@@ -40,12 +43,12 @@ export async function POST(req) {
     );
   } catch (error) {
     if (error?.code === 11000) {
-      return Response.json(
+      return NextResponse.json(
         { error: "Username or email already exists." },
         { status: 409 }
       );
     }
 
-    return Response.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
