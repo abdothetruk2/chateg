@@ -218,6 +218,7 @@ export default function ChatWindow({
   const [selectedPresence, setSelectedPresence] = useState(
     Boolean(selectedUser?.status)
   );
+  const [showPinnedMessage, setShowPinnedMessage] = useState(true);
   const [callOpen, setCallOpen] = useState(false);
   const [callType, setCallType] = useState("video");
   const [incomingCall, setIncomingCall] = useState(null);
@@ -267,6 +268,11 @@ export default function ChatWindow({
     selectedUser?.type === "group"
       ? selectedUser?.message || "Group chat"
       : selectedUser?.about || "No bio yet.";
+  const conversationNote =
+    selectedUser?.message ||
+    (selectedUser?.type === "group"
+      ? "Group chat with members, shared files, approvals, and room calls."
+      : "Realtime messages with media, voice notes, reactions, and calls.");
   
   async function groupavatar(e) {
     try {
@@ -417,7 +423,7 @@ export default function ChatWindow({
 
     const now = Date.now();
 
-    if (now - lastTypingTimeRef.current < 250) return;
+    if (now - lastTypingTimeRef.current < 70) return;
     lastTypingTimeRef.current = now;
 
     const isGroup = selectedUser?.type === "group";
@@ -549,34 +555,6 @@ export default function ChatWindow({
       });
     } catch (error) {
       console.error("Delete message failed:", error);
-    }
-  }
-
-  async function reactToMessage(targetMessage, emoji) {
-    const messageId = getMessageDbId(targetMessage);
-    const reactionUser = currentUserId || currentUser?.username;
-
-    if (!messageId || !reactionUser) return;
-
-    const currentReaction = (targetMessage.reactions || []).find(
-      (reaction) => reaction.user === reactionUser
-    );
-    const nextEmoji = currentReaction?.emoji === emoji ? "" : emoji;
-
-    try {
-      const res = await axios.patch(`/api/message/${messageId}`, {
-        action: "react",
-        userId: reactionUser,
-        emoji: nextEmoji,
-      });
-
-      const nextMessage = res.data?.message;
-      if (nextMessage) {
-        upsertMessage(nextMessage, { syncParent: true });
-        socket.emit("message-reaction", nextMessage);
-      }
-    } catch (error) {
-      console.error("Message reaction failed:", error);
     }
   }
 
@@ -742,6 +720,7 @@ export default function ChatWindow({
   useEffect(() => {
     setFriendshipOverride("");
     setFriendshipMessage("");
+    setShowPinnedMessage(true);
   }, [selectedUser?._id]);
 
 useEffect(() => {
@@ -862,7 +841,7 @@ useEffect(() => {
           delete copy[data.sender];
           return copy;
         });
-      }, 950);
+      }, 650);
     }
 
     function onPresence(data) {
@@ -1030,11 +1009,11 @@ useEffect(() => {
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="flex min-h-[calc(100vh-3.5rem)] overflow-hidden bg-transparent text-white md:h-screen">
-        <main className="flex min-w-0 flex-1 flex-col border-r border-white/10">
-          <header className="app-surface mx-3 mt-3 flex items-center justify-between rounded-[1.5rem] px-4 py-3 md:mx-4 md:px-5">
+        <main className="app-chat-canvas flex min-w-0 flex-1 flex-col border-r border-white/10">
+          <header className="app-surface relative z-20 mx-3 mt-3 flex items-center justify-between rounded-[1.5rem] px-4 py-3 md:mx-4 md:px-5">
             <div className="min-w-0 flex-1 flex items-center gap-3">
               <button
-                className="rounded-2xl p-2 transition hover:bg-white/10 md:hidden"
+                className="app-icon-button rounded-2xl p-2 md:hidden"
                 type="button"
                 onClick={onBack}
                 aria-label="Back to chats"
@@ -1072,7 +1051,7 @@ useEffect(() => {
                     }`}
                   >
                     {typingNames.length > 0
-                      ? `${typingNames.join(", ")} typing...`
+                      ? `${typingNames.join(", ")} typing now`
                       : selectedPresenceLabel}
                   </p>
                 </div>
@@ -1081,7 +1060,7 @@ useEffect(() => {
 
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <button
-                className="flex rounded-2xl border border-white/10 bg-white/5 p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                className="app-icon-button rounded-2xl p-2 disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 title={
                   selectedUser?.type === "group"
@@ -1096,7 +1075,7 @@ useEffect(() => {
                 <Video className="h-5 w-5" />
               </button>
               <button
-                className="flex rounded-2xl border border-white/10 bg-white/5 p-2 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                className="app-icon-button rounded-2xl p-2 disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 title={
                   selectedUser?.type === "group"
@@ -1110,7 +1089,7 @@ useEffect(() => {
               >
                 <Phone className="h-5 w-5" />
               </button>
-              <button className="hidden rounded-2xl border border-white/10 bg-white/5 p-2 transition hover:-translate-y-0.5 hover:bg-white/10 sm:flex">
+              <button className="app-icon-button hidden rounded-2xl p-2 sm:flex">
                 <Search className="h-5 w-5" />
               </button>
               <button
@@ -1123,44 +1102,57 @@ useEffect(() => {
             </div>
           </header>
 
-          <div className="mx-3 mt-3 flex items-center justify-between rounded-[1.25rem] border border-white/10 bg-white/[0.045] px-4 py-3 md:mx-4 md:px-5">
-            <div className="flex items-start gap-3">
-              <Pin className="mt-0.5 h-4 w-4 text-cyan-200" />
-              <div>
-                <h4 className="text-sm font-semibold">Pinned Message</h4>
-                <p className="text-sm text-slate-400">
-                  {selectedUser.message || "No pinned message"}
-                </p>
+          {showPinnedMessage && (
+            <div className="app-section-card relative z-10 mx-3 mt-3 flex items-start justify-between gap-3 rounded-[1.25rem] px-4 py-3 md:mx-4 md:px-5">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/12 text-cyan-200">
+                  <Pin className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-sm font-black">Conversation brief</h4>
+                    <span className="app-mini-pill">
+                      {selectedPresenceLabel}
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-400">
+                    {conversationNote}
+                  </p>
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPinnedMessage(false)}
+                className="app-icon-button shrink-0 rounded-xl p-1.5"
+                aria-label="Hide conversation brief"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
+          )}
 
-            <button className="rounded-xl p-1.5 transition hover:bg-white/10">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="thin-scrollbar flex-1 overflow-y-auto px-4 py-6 md:px-6">
+          <div className="thin-scrollbar relative z-10 flex-1 overflow-y-auto px-4 py-6 md:px-6">
             <div className="relative z-10 space-y-6">
               {messages.length === 0 && (
-                <div className="flex items-end gap-3">
-                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[1rem] ring-1 ring-white/10">
-                    <Image
-                      src={selectedAvatar}
-                      alt="avatar"
-                      fill
-                      className="object-cover"
-
-                    />
-                  </div>
-
-                  <div className="flex max-w-[85%] flex-col gap-1 md:max-w-[70%]">
-                    <div className="app-bubble rounded-2xl rounded-bl-md bg-white/10 px-4 py-3">
-                      <p className="text-sm leading-6 text-slate-100">
-                        Hello! Start your conversation here.
+                <div className="grid min-h-[42vh] place-items-center py-8">
+                  <div className="app-premium-card max-w-md rounded-[1.75rem] p-6 text-center">
+                    <div className="relative z-10 mx-auto h-20 w-20 overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20 shadow-2xl shadow-black/25">
+                      <Image
+                        src={selectedAvatar}
+                        alt={selectedChatName || "Conversation"}
+                        fill
+                        sizes="80px"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="relative z-10 mt-5">
+                      <h3 className="text-xl font-black">
+                        Start with {selectedChatName || "this chat"}
+                      </h3>
+                      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-300">
+                        Send a message, attach media, record a voice note, or start a call from the controls below.
                       </p>
-                      <span className="mt-2 block text-xs text-slate-400">
-                        Now
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -1176,16 +1168,12 @@ useEffect(() => {
                 );
                 const messageId = getMessageDbId(msg);
                 const reactionSummary = getReactionSummary(msg.reactions || []);
-                const reactionUser = currentUserId || currentUser?.username;
-                const ownReaction = (msg.reactions || []).find(
-                  (reaction) => String(reaction.user) === String(reactionUser)
-                );
                 const showReadReceipt = isMe && msg.type !== "group";
 
                 return (
                   <div
                     key={msg.clientId || msg.id || index}
-                    className={`group/message flex items-end gap-3 ${
+                    className={`app-message-row group/message flex items-end gap-3 ${
                       isMe ? "justify-end" : "justify-start"
                     }`}
                   >
@@ -1227,8 +1215,8 @@ useEffect(() => {
                         <div
                           className={`app-bubble rounded-2xl px-4 py-3 ${
                             isMe
-                              ? "rounded-br-md bg-cyan-300 text-slate-950"
-                              : "rounded-bl-md bg-white/10 text-slate-100"
+                              ? "app-message-bubble-out rounded-br-md text-slate-950"
+                              : "app-message-bubble-in rounded-bl-md text-slate-100"
                           }`}
                         >
                         {msg.storyReply?.storyId && (
@@ -1340,30 +1328,6 @@ useEffect(() => {
                         </div>
                       )}
 
-                      {messageId && !msg.pending && !msg.failed && (
-                        <div
-                          className={`flex flex-wrap gap-1 px-1 opacity-0 transition group-hover/message:opacity-100 ${
-                            isMe ? "justify-end" : "justify-start"
-                          }`}
-                        >
-                          {messageEmotions.slice(0, 6).map((emoji) => (
-                            <button
-                              key={emoji}
-                              type="button"
-                              onClick={() => reactToMessage(msg, emoji)}
-                              className={`rounded-full px-2 py-1 text-xs transition hover:bg-white/15 ${
-                                ownReaction?.emoji === emoji
-                                  ? "bg-cyan-300/25 text-cyan-100"
-                                  : "bg-white/5 text-slate-200"
-                              }`}
-                              title={`React ${emoji}`}
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
                       {showReadReceipt && (
                         <div className="flex justify-end px-1">
                           <span
@@ -1405,15 +1369,16 @@ useEffect(() => {
                     />
                   </div>
 
-                  <div className="typing-bubble app-bubble rounded-2xl rounded-bl-md bg-white/10 px-4 py-3">
-                    <div className="mb-1 text-xs text-slate-400">
-                      {typingNames.join(", ")} typing
+                  <div className="typing-quick-bubble app-bubble rounded-2xl rounded-bl-md px-4 py-3">
+                    <div className="relative z-10 mb-1 flex items-center gap-2 text-xs font-bold text-cyan-100">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.8)]" />
+                      {typingNames.join(", ")} typing fast
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <span className="typing-dot h-2 w-2 rounded-full bg-cyan-200" />
-                      <span className="typing-dot h-2 w-2 rounded-full bg-cyan-200 [animation-delay:90ms]" />
-                      <span className="typing-dot h-2 w-2 rounded-full bg-cyan-200 [animation-delay:180ms]" />
+                    <div className="relative z-10 flex items-center gap-1.5">
+                      <span className="typing-quick-dot h-2.5 w-2.5 rounded-full bg-cyan-200" />
+                      <span className="typing-quick-dot h-2.5 w-2.5 rounded-full bg-emerald-200" />
+                      <span className="typing-quick-dot h-2.5 w-2.5 rounded-full bg-amber-200" />
                     </div>
                   </div>
                 </div>
@@ -1423,7 +1388,7 @@ useEffect(() => {
             </div>
           </div>
 
-          <footer className="border-t border-white/10 bg-[#07111c]/90 p-4 backdrop-blur md:p-5">
+          <footer className="app-composer relative z-20 m-3 rounded-[1.5rem] p-3 md:m-4 md:p-4">
             {previewUrl && (
               <div className="app-surface mb-4 rounded-[1.5rem] p-3">
                 <div className="mb-2 flex items-center justify-between">
@@ -1487,7 +1452,7 @@ useEffect(() => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => inputRef.current?.click()}
-                className="hidden rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/10 sm:block"
+                className="app-icon-button hidden rounded-2xl p-3 sm:block"
                 title="Attach Files"
                 type="button"
               >
@@ -1501,10 +1466,7 @@ useEffect(() => {
                 accept="image/*,video/*,.pdf,.doc,.docx,.txt"
                 className="hidden"
               />
-            <div> 
-            <VoiceRecorder onSend={sendVoice }/>
-
-            </div>
+              <VoiceRecorder onSend={sendVoice} />
               <div
                 className={`focus-within:border-cyan-300/35 relative flex flex-1 items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition ${
                   isComposing
@@ -1568,7 +1530,7 @@ useEffect(() => {
         </main>
 
         {showContactInfo && (
-        <aside className="app-panel hidden w-[340px] shrink-0 lg:flex lg:flex-col">
+        <aside className="app-panel hidden w-[360px] shrink-0 border-l border-white/10 lg:flex lg:flex-col">
           <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">
@@ -1578,7 +1540,7 @@ useEffect(() => {
             </div>
             <button
               onClick={() => setShowContactInfo(false)}
-              className="rounded-2xl border border-white/10 bg-white/5 p-2 transition hover:-translate-y-0.5 hover:bg-white/10"
+              className="app-icon-button rounded-2xl p-2"
               type="button"
             >
               <X className="h-5 w-5" />
@@ -1586,7 +1548,7 @@ useEffect(() => {
           </div>
 
           <div className="thin-scrollbar flex-1 overflow-y-auto px-5 py-6">
-            <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] text-center">
+            <div className="app-premium-card overflow-hidden rounded-[1.75rem] text-center">
               <div className="app-profile-cover relative h-28">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
               </div>
@@ -1600,31 +1562,39 @@ useEffect(() => {
 
                   />
                 </div>
-                     {isGroupAdmin && (
-  <div onClick={function(){groupAvatarInputRef.current?.click()}} className="mx-auto mb-3 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-2 text-sm transition hover:bg-white/10"> 
-    <h1>Upload photo</h1>  <Upload /> 
-    
-    <input type="file" onChange={groupavatar}  ref={groupAvatarInputRef} className="hidden" />
-    
-    </div>
-  )}
-                <h2 className="flex items-center justify-center gap-2 text-xl font-black">
+                {isGroupAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => groupAvatarInputRef.current?.click()}
+                    className="app-icon-button mx-auto mb-3 flex rounded-2xl px-3 py-2 text-sm font-bold"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload photo
+                    <input
+                      type="file"
+                      onChange={groupavatar}
+                      ref={groupAvatarInputRef}
+                      className="hidden"
+                    />
+                  </button>
+                )}
+                <h2 className="relative z-10 flex items-center justify-center gap-2 text-xl font-black">
                   {selectedChatName}
                   <BadgeCheck className="h-5 w-5 text-sky-400" />
                 </h2>
 
-                <p className="mx-auto mt-2 max-w-[250px] whitespace-pre-wrap text-sm leading-6 text-slate-400">
+                <p className="relative z-10 mx-auto mt-2 max-w-[260px] whitespace-pre-wrap text-sm leading-6 text-slate-400">
                   {profileBio}
                 </p>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-slate-300">
-                  <div className="rounded-2xl bg-white/5 px-3 py-3">
+                <div className="relative z-10 mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-slate-300">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
                     <p className="text-lg font-black text-white">
                       {sharedMedia.length}
                     </p>
                     Shared
                   </div>
-                  <div className="rounded-2xl bg-white/5 px-3 py-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
                     <p className="text-lg font-black text-white">
                       {selectedUser?.type === "group"
                         ? activeGroup?.members?.length || 0
@@ -1635,7 +1605,7 @@ useEffect(() => {
                 </div>
 
                 {selectedUser?.type !== "group" && (
-                  <div className="mx-auto mt-4 flex max-w-[260px] flex-col gap-2 text-left text-xs text-slate-300">
+                  <div className="relative z-10 mx-auto mt-4 flex max-w-[260px] flex-col gap-2 text-left text-xs text-slate-300">
                     {selectedUser?.jobTitle && (
                       <p className="flex items-center gap-2 rounded-2xl bg-white/5 px-3 py-2">
                         <Briefcase className="h-4 w-4 text-cyan-200" />
@@ -1667,14 +1637,14 @@ useEffect(() => {
             ) : (
               <>
                 {mediaItems.length > 0 && (
-                  <div className="mt-4 grid grid-cols-3 gap-3">
+                  <div className="app-media-grid mt-4">
                     {mediaItems.slice(0, 6).map((item) => (
                       <a
                         key={item.id}
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="group relative aspect-square overflow-hidden rounded-lg bg-white/5"
+                        className="app-media-tile group"
                       >
                         {item.type === "image" ? (
                           <Image
@@ -1705,9 +1675,9 @@ useEffect(() => {
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-3 rounded-lg bg-white/5 p-3 transition hover:-translate-y-0.5 hover:bg-white/10"
+                        className="app-section-card flex items-center gap-3 rounded-2xl p-3 transition hover:-translate-y-0.5 hover:bg-white/10"
                       >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-300/15 text-cyan-200">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-200">
                           <FileText className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">

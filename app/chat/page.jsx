@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import Cookies from "js-cookie";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -577,7 +578,7 @@ export default function Home() {
         setTypingUser(chatName);
 
         clearTimeout(timer);
-        timer = setTimeout(() => setTypingUser(null), 1500);
+        timer = setTimeout(() => setTypingUser(null), 750);
       }
     }
 
@@ -666,7 +667,7 @@ export default function Home() {
       <Sidebar />
 
       <aside
-        className={`app-panel min-h-[calc(100vh-4rem)] w-full flex-col border-b text-white md:flex md:h-screen md:border-b-0 ${
+        className={`app-panel min-h-[calc(100vh-4rem)] w-full flex-col border-b text-white md:flex md:h-screen md:border-b-0 md:border-r md:border-white/10 ${
           selectedUser ? "hidden" : "flex"
         }`}
       >
@@ -676,13 +677,13 @@ export default function Home() {
               <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200/80">
                 Workspace
               </p>
-              <h2 className="text-2xl font-black tracking-tight">Messages</h2>
+              <h2 className="app-gradient-text text-2xl font-black tracking-tight">Messages</h2>
               <p className="mt-1 text-sm text-slate-400">
                 Direct chats, groups, and live status activity.
               </p>
             </div>
 
-            <button className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-400 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white">
+            <button className="app-icon-button rounded-2xl p-2.5">
               <MoreVertical className="h-5 w-5" />
             </button>
           </div>
@@ -741,11 +742,11 @@ export default function Home() {
                 }}
                 className="flex min-w-[70px] cursor-pointer flex-col items-center gap-2 transition-transform duration-100 hover:scale-105"
               >
-                <div
+                  <div
                   className={`rounded-full p-[2px] ${
                     statusItem.viewed
                       ? "bg-slate-600"
-                      : "bg-gradient-to-tr from-pink-500 via-violet-500 to-sky-500"
+                      : "app-status-ring"
                   }`}
                 >
                   <div className="relative h-14 w-14 overflow-hidden rounded-full bg-[#0b1220] p-[2px]">
@@ -801,7 +802,7 @@ export default function Home() {
         </div>
 
         <div className="p-5">
-          <button className="app-surface hover-lift flex w-full items-center justify-between rounded-[1.5rem] p-4 text-left">
+          <Link href="/ai" className="app-surface hover-lift flex w-full items-center justify-between rounded-[1.5rem] p-4 text-left">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/15">
                 <Sparkles className="h-5 w-5 text-cyan-200" />
@@ -815,7 +816,7 @@ export default function Home() {
             </div>
 
             <Stars className="h-5 w-5 text-yellow-300" />
-          </button>
+          </Link>
         </div>
 
         <div className="thin-scrollbar flex-1 space-y-2 overflow-y-auto px-5 pb-5">
@@ -823,7 +824,10 @@ export default function Home() {
             <UserListLoader count={5} label="Loading chats" />
           ) : filteredUsers.length === 0 ? (
             <div className="app-empty-state rounded-[1.5rem] p-5 text-sm text-slate-300">
-              No users found.
+              <p className="font-bold text-white">No chats found</p>
+              <p className="mt-1 text-sm leading-6 text-slate-400">
+                Try a different search, switch filters, or create a group.
+              </p>
             </div>
           ) : (
             filteredUsers.map((user) => {
@@ -900,7 +904,7 @@ export default function Home() {
                     <div className="text-sm text-slate-300">
                       {typingUser === getChatName(user) ? (
                         <p className="truncate font-semibold text-cyan-300">
-                          typing...
+                          typing now
                         </p>
                       ) : user?.type === "group" ? (
                         <p className="truncate">
@@ -966,7 +970,7 @@ export default function Home() {
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-slate-400">
-              <div className="app-empty-state max-w-md rounded-[1.75rem] px-6 py-6 text-center">
+              <div className="app-premium-card max-w-md rounded-[1.75rem] px-6 py-6 text-center">
                 <h2 className="text-xl font-black text-white">
                   Choose a conversation
                 </h2>

@@ -72,7 +72,11 @@ function PostsSkeleton() {
   return (
     <div className="space-y-4">
       {[1, 2, 3].map((item) => (
-        <article key={item} className="app-panel rounded-[1.75rem] p-4">
+        <article
+          key={item}
+          className="app-premium-card app-loading-card app-post-card rounded-[1.75rem] p-4"
+          style={{ animationDelay: `${item * 90}ms` }}
+        >
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 animate-pulse rounded-full bg-white/10" />
             <div className="flex-1 space-y-2">
@@ -97,6 +101,7 @@ export default function PostsPage() {
   const [postType, setPostType] = useState("profile");
   const [selectedFile, setSelectedFile] = useState(null);
   const [commentDrafts, setCommentDrafts] = useState({});
+  const [openEmotionPostId, setOpenEmotionPostId] = useState("");
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
@@ -176,6 +181,20 @@ export default function PostsPage() {
   async function toggleLike(post) {
     if (!currentUser?._id) return;
 
+    const userId = String(currentUser._id);
+    const liked = hasLiked(post, userId);
+    const previousPost = post;
+    const currentLikes = Array.isArray(post.likes) ? post.likes : [];
+    const nextLikes = liked
+      ? currentLikes.filter((item) => String(item) !== userId)
+      : [...currentLikes, currentUser._id];
+    const optimisticPost = {
+      ...post,
+      likes: nextLikes,
+    };
+
+    updatePost(optimisticPost);
+
     try {
       const res = await axios.patch(`/api/posts/${post._id}`, {
         action: "like",
@@ -185,6 +204,7 @@ export default function PostsPage() {
       updatePost(res.data);
     } catch (likeError) {
       console.error("Like failed:", likeError);
+      updatePost(previousPost);
     }
   }
 
@@ -211,6 +231,7 @@ export default function PostsPage() {
       ...prev,
       [postId]: `${prev[postId] || ""}${emoji}`,
     }));
+    setOpenEmotionPostId("");
   }
 
   async function deletePost(post) {
@@ -272,13 +293,13 @@ export default function PostsPage() {
       <Sidebar />
 
       <main className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8">
-        <header className="mb-6 flex items-center justify-between">
+        <header className="app-page-header">
           <div>
             <div className="app-kicker">
               <Newspaper className="h-4 w-4" />
               Social
             </div>
-            <h1 className="mt-4 text-4xl font-black">Posts</h1>
+            <h1 className="app-page-title app-gradient-text">Posts</h1>
             <p className="mt-2 text-sm text-slate-400">
               Share updates, media, and quick comments across the workspace.
             </p>
@@ -288,7 +309,7 @@ export default function PostsPage() {
           </div>
         </header>
 
-        <section className="app-panel app-reveal mb-5 overflow-hidden rounded-[1.75rem]">
+        <section className="app-premium-card app-gradient-accent app-reveal mb-5 overflow-hidden rounded-[1.75rem]">
           <div className="app-profile-cover relative h-52 overflow-hidden bg-black/25 sm:h-60">
             {currentUser?.coverPhoto ? (
               <Image
@@ -403,7 +424,7 @@ export default function PostsPage() {
           </div>
         </section>
 
-        <section className="app-panel mb-5 rounded-[1.75rem] p-4">
+        <section className="app-premium-card app-post-card mb-5 rounded-[1.75rem] p-4">
           <div className="flex gap-3">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full">
               <Image
@@ -502,7 +523,10 @@ export default function PostsPage() {
           <PostsSkeleton />
         ) : posts.length === 0 ? (
           <div className="app-empty-state rounded-[1.75rem] p-6 text-center text-sm text-slate-300">
-            No posts yet.
+            <p className="font-black text-white">No posts yet</p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Share the first update with text, media, or a quick team note.
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -513,7 +537,7 @@ export default function PostsPage() {
                 String(post.user?._id || "") === String(currentUser?._id || "");
 
               return (
-                <article key={post._id} className="app-panel rounded-[1.75rem] p-4">
+                <article key={post._id} className="app-premium-card app-post-card rounded-[1.75rem] p-4">
                   <header className="flex items-center gap-3">
                     <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full">
                       <Image
@@ -549,7 +573,7 @@ export default function PostsPage() {
                   </header>
 
                   {post.content && (
-                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-100">
+                    <p className="app-theme-text mt-4 whitespace-pre-wrap text-sm font-semibold leading-6">
                       {post.content}
                     </p>
                   )}
@@ -579,8 +603,10 @@ export default function PostsPage() {
                     <button
                       type="button"
                       onClick={() => toggleLike(post)}
-                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition hover:bg-white/10 ${
-                        liked ? "like-hand-pop text-cyan-200" : "text-slate-300"
+                      className={`app-like-button flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold hover:bg-white/10 ${
+                        liked
+                          ? "app-like-button-active like-hand-pop text-cyan-200"
+                          : "text-slate-300"
                       }`}
                     >
                       <ThumbsUp className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
@@ -597,7 +623,7 @@ export default function PostsPage() {
                       {comments.slice(-3).map((comment) => (
                         <div
                           key={comment._id || `${comment.user?._id}-${comment.createdAt}`}
-                          className="group rounded-lg bg-white/[0.045] px-3 py-2"
+                          className="group app-section-card rounded-2xl px-3 py-2"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-start gap-2">
@@ -642,49 +668,67 @@ export default function PostsPage() {
                     </div>
                   )}
 
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      value={commentDrafts[post._id] || ""}
-                      onChange={(event) =>
-                        setCommentDrafts((prev) => ({
-                          ...prev,
-                          [post._id]: event.target.value,
-                        }))
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          sendComment(post);
+                  <div className="mt-3 space-y-2">
+                    {openEmotionPostId === post._id && (
+                      <div className="app-scale-in flex w-fit max-w-full flex-wrap items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.055] p-2">
+                        {quickEmotions.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => appendCommentEmoji(post._id, emoji)}
+                            className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-sm transition hover:-translate-y-0.5 hover:bg-white/10"
+                            title={`Add ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={commentDrafts[post._id] || ""}
+                        onChange={(event) =>
+                          setCommentDrafts((prev) => ({
+                            ...prev,
+                            [post._id]: event.target.value,
+                          }))
                         }
-                      }}
-                      placeholder="Write a comment..."
-                      className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45"
-                    />
-                    <div className="flex max-w-[13rem] flex-wrap items-center justify-end gap-1">
-                      {quickEmotions.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => appendCommentEmoji(post._id, emoji)}
-                          className="rounded-xl bg-white/5 px-2 py-2 text-sm transition hover:-translate-y-0.5 hover:bg-white/10"
-                          title={`Add ${emoji}`}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => sendComment(post)}
-                      disabled={!commentDrafts[post._id]?.trim()}
-                      className="rounded-lg bg-cyan-300 p-2 text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {commentDrafts[post._id]?.trim() ? (
-                        <Send className="h-4 w-4" />
-                      ) : (
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            sendComment(post);
+                          }
+                        }}
+                        placeholder="Write a comment..."
+                        className="app-input min-w-0 flex-1 rounded-2xl px-4 py-2 text-sm text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenEmotionPostId((current) =>
+                            current === post._id ? "" : post._id
+                          )
+                        }
+                        className={`rounded-2xl border p-2.5 transition hover:-translate-y-0.5 ${
+                          openEmotionPostId === post._id
+                            ? "border-cyan-300/35 bg-cyan-300/15 text-cyan-100"
+                            : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                        }`}
+                        title="Show emotions"
+                      >
                         <Smile className="h-4 w-4" />
-                      )}
-                    </button>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => sendComment(post)}
+                        disabled={!commentDrafts[post._id]?.trim()}
+                        className="rounded-2xl bg-cyan-300 p-2.5 text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Send comment"
+                      >
+                        <Send className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </article>
               );

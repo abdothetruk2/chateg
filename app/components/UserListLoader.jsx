@@ -15,7 +15,8 @@ export default function UserListLoader({
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
-          className="app-list-item flex items-center gap-3 rounded-[1.5rem] p-3"
+          className="app-list-item app-loading-card flex items-center gap-3 rounded-[1.5rem] p-3"
+          style={{ animationDelay: `${index * 80}ms` }}
         >
           <div className={`skeleton-shimmer h-14 w-14 shrink-0 bg-white/10 ${avatar}`} />
           <div className="min-w-0 flex-1 space-y-2">

@@ -80,13 +80,13 @@ export default function RoomsPage() {
       <Sidebar />
 
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <header className="app-page-header flex-col items-start md:flex-row md:items-end">
           <div>
             <div className="app-kicker">
               <Hash className="h-4 w-4" />
               Rooms
             </div>
-            <h1 className="mt-4 text-4xl font-black">Group Rooms</h1>
+            <h1 className="app-page-title app-gradient-text">Group Rooms</h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
               Persistent spaces for group chat, members, shared media, and room calls.
             </p>
@@ -107,7 +107,10 @@ export default function RoomsPage() {
           <RoomSkeleton />
         ) : filteredRooms.length === 0 ? (
           <div className="app-empty-state rounded-[1.75rem] p-8 text-center text-slate-300">
-            No rooms found.
+            <p className="font-black text-white">No rooms found</p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Try another search, or create a group from the Messages page.
+            </p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -121,7 +124,7 @@ export default function RoomsPage() {
               return (
                 <article
                   key={room._id}
-                  className="app-stat-card overflow-hidden rounded-[1.75rem]"
+                  className="app-premium-card overflow-hidden rounded-[1.75rem]"
                 >
                   <div className="relative h-36 bg-black/25">
                     {room?.avatar ? (
@@ -159,15 +162,15 @@ export default function RoomsPage() {
                     </div>
 
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-300">
-                      <div className="rounded-2xl bg-white/5 px-2 py-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 px-2 py-3">
                         <Users className="mx-auto mb-1 h-4 w-4 text-cyan-200" />
                         {memberCount}
                       </div>
-                      <div className="rounded-2xl bg-white/5 px-2 py-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 px-2 py-3">
                         <MessageSquareText className="mx-auto mb-1 h-4 w-4 text-emerald-200" />
                         Chat
                       </div>
-                      <div className="rounded-2xl bg-white/5 px-2 py-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 px-2 py-3">
                         <Video className="mx-auto mb-1 h-4 w-4 text-amber-200" />
                         Call
                       </div>

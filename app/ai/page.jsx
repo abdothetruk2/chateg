@@ -27,7 +27,7 @@ const modes = [
     id: "chat",
     label: "Chat",
     icon: Bot,
-    placeholder: "Ask Nexchat AI anything...",
+    placeholder: "Ask Egchat AI anything...",
     samples: [
       "Give me a friendly reply to this message.",
       "Help me write a clear message to my friend.",
@@ -289,16 +289,11 @@ export default function AiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white lg:grid lg:grid-cols-[4.5rem_1fr]">
+    <div className="app-shell grid min-h-screen grid-cols-1 pb-14 text-white lg:grid-cols-[4.5rem_1fr] lg:pb-0">
       <Sidebar />
 
-      <main className="relative flex min-h-screen flex-col overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-32 left-1/4 h-72 w-72 rounded-full bg-cyan-500/20 blur-[110px]" />
-          <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-purple-500/10 blur-[120px]" />
-        </div>
-
-        <header className="relative z-10 border-b border-white/10 bg-white/[0.03] px-4 py-4 backdrop-blur-xl lg:px-8">
+      <main className="app-chat-canvas relative flex min-h-screen flex-col overflow-hidden">
+        <header className="app-surface relative z-10 mx-3 mt-3 rounded-[1.5rem] px-4 py-4 lg:mx-5 lg:px-6">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-300/20">
@@ -306,8 +301,8 @@ export default function AiPage() {
               </div>
 
               <div>
-                <h1 className="text-xl font-black tracking-tight">
-                  Nexchat AI
+                <h1 className="app-gradient-text text-xl font-black tracking-tight">
+                  Egchat AI
                 </h1>
                 <p className="text-sm text-slate-400">
                   Smart replies, translation, image generation, and AI help
@@ -321,7 +316,7 @@ export default function AiPage() {
           </div>
         </header>
 
-        <section className="relative z-10 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 px-4 py-4 lg:px-8">
+        <section className="relative z-10 px-4 py-4 lg:px-8">
           <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto pb-1">
             {modes.map((item) => {
               const Icon = item.icon;
@@ -350,7 +345,7 @@ export default function AiPage() {
         <section className="relative z-10 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
           {messages.length === 0 ? (
             <div className="mx-auto grid min-h-[60vh] max-w-4xl place-items-center">
-              <div className="w-full rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 text-center shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-8">
+              <div className="app-premium-card w-full rounded-[2rem] p-6 text-center sm:p-8">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-300/20">
                   <MessageSquareText className="h-8 w-8" />
                 </div>
@@ -361,7 +356,7 @@ export default function AiPage() {
 
                 <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-400">
                   Ask a question, write a reply, translate text, or generate an
-                  image directly inside Nexchat.
+                  image directly inside Egchat.
                 </p>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -370,7 +365,7 @@ export default function AiPage() {
                       key={sample}
                       type="button"
                       onClick={() => insertSample(sample)}
-                      className="group rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-left text-sm leading-6 text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
+                      className="group app-section-card rounded-2xl px-4 py-4 text-left text-sm leading-6 text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
                     >
                       <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-200/70">
                         <Wand2 className="h-3.5 w-3.5" />
@@ -391,7 +386,7 @@ export default function AiPage() {
                   <article
                     key={message.id}
                     className={cn(
-                      "flex gap-3",
+                      "app-message-row flex gap-3",
                       isUser ? "justify-end" : "justify-start"
                     )}
                   >
@@ -405,15 +400,16 @@ export default function AiPage() {
                       className={cn(
                         "max-w-[min(44rem,88vw)] rounded-[1.4rem] px-4 py-3 shadow-lg",
                         isUser
-                          ? "rounded-br-md bg-cyan-300 text-slate-950 shadow-cyan-500/10"
-                          : "rounded-bl-md border border-white/10 bg-white/[0.06] text-slate-100 shadow-black/20 backdrop-blur"
+                          ? "app-message-bubble-out rounded-br-md text-slate-950 shadow-cyan-500/10"
+                          : "app-message-bubble-in rounded-bl-md text-slate-100 shadow-black/20 backdrop-blur"
                       )}
                     >
                       {message.imageUrl && (
                         <div className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={message.imageUrl}
-                            alt="Generated by Nexchat AI"
+                            alt="Generated by Egchat AI"
                             className="block max-h-[480px] w-full object-contain"
                           />
                         </div>
@@ -459,11 +455,11 @@ export default function AiPage() {
               })}
 
               {sending && (
-                <div className="flex w-fit items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300">
+                <div className="app-section-card flex w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold text-slate-300">
                   <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
                   {mode === "image"
                     ? "Generating your image..."
-                    : "Nexchat AI is typing..."}
+                    : "Egchat AI is typing..."}
                 </div>
               )}
 
@@ -479,10 +475,10 @@ export default function AiPage() {
           </div>
         )}
 
-        <footer className="relative z-10 border-t border-white/10 bg-[#050816]/90 px-4 py-4 backdrop-blur-xl lg:px-8">
+        <footer className="app-composer relative z-10 m-3 rounded-[1.5rem] px-4 py-4 lg:m-5 lg:px-5">
           <form
             onSubmit={submitForm}
-            className="mx-auto max-w-4xl rounded-[1.6rem] border border-white/10 bg-white/[0.05] p-3 shadow-2xl shadow-black/20"
+            className="mx-auto max-w-4xl rounded-[1.6rem] border border-white/10 bg-white/[0.05] p-3"
           >
             <div className="mb-3 flex items-center justify-between gap-2 px-1">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
@@ -495,7 +491,7 @@ export default function AiPage() {
                   type="button"
                   onClick={retryLastMessage}
                   disabled={sending || !canRetry}
-                  className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                  className="app-icon-button rounded-xl p-2 disabled:opacity-40"
                   title="Retry"
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -505,7 +501,7 @@ export default function AiPage() {
                   type="button"
                   onClick={clearThread}
                   disabled={sending || !canClear}
-                  className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                  className="app-icon-button rounded-xl p-2 disabled:opacity-40"
                   title="Clear"
                 >
                   <Trash2 className="h-4 w-4" />

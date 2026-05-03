@@ -122,7 +122,7 @@ export default function CallsPage() {
     <div className="app-shell grid min-h-screen grid-cols-1 pb-14 md:grid-cols-[minmax(18rem,23rem)_1fr] lg:grid-cols-[4.5rem_minmax(19rem,24rem)_1fr] lg:pb-0">
       <Sidebar />
 
-      <aside className="app-panel flex min-h-[46vh] w-full flex-col border-b text-white md:min-h-screen md:border-b-0">
+      <aside className="app-panel flex min-h-[46vh] w-full flex-col border-b text-white md:min-h-screen md:border-b-0 md:border-r md:border-white/10">
         <div className="border-b border-white/10 p-5">
           <div className="mb-5 flex items-center justify-between">
             <div>
@@ -133,7 +133,7 @@ export default function CallsPage() {
                 Voice & Video
               </div>
 
-              <h2 className="mt-4 text-3xl font-black tracking-tight">Calls</h2>
+              <h2 className="app-gradient-text mt-4 text-3xl font-black tracking-tight">Calls</h2>
               <p className="mt-2 text-sm text-slate-400">
                 Start voice or video conversations from the same workspace.
               </p>
@@ -141,7 +141,7 @@ export default function CallsPage() {
 
             <button
               type="button"
-              className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-300 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white"
+              className="app-icon-button rounded-2xl p-2.5"
             >
               <MoreVertical className="h-5 w-5" />
             </button>
@@ -287,11 +287,9 @@ export default function CallsPage() {
         </div>
       </aside>
 
-      <main className="relative hidden min-h-screen overflow-hidden md:block">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.12),transparent_35%)]" />
-
+      <main className="app-chat-canvas relative hidden min-h-screen overflow-hidden md:block">
         <div className="relative z-10 flex h-full items-center justify-center p-8">
-          <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center text-white shadow-2xl backdrop-blur">
+          <div className="app-premium-card w-full max-w-xl rounded-[1.75rem] p-8 text-center text-white">
             <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-cyan-300/15 text-cyan-100">
               {selected ? (
                 <Image

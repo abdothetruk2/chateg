@@ -272,14 +272,14 @@ export default function StatusSidebar() {
     <div className="app-shell grid min-h-screen grid-cols-1 pb-14 text-white md:grid-cols-[minmax(18rem,22rem)_1fr] lg:grid-cols-[4.5rem_minmax(19rem,23rem)_1fr] lg:pb-0">
       <Sidebar />
 
-      <aside className="app-panel flex min-h-[42vh] flex-col border-b md:min-h-screen md:border-b-0">
+      <aside className="app-panel flex min-h-[42vh] flex-col border-b md:min-h-screen md:border-b-0 md:border-r md:border-white/10">
         <header className="flex min-h-[88px] items-center justify-between border-b border-white/10 bg-white/[0.03] px-5">
           <div>
             <div className="app-kicker">
               <Plus className="h-4 w-4" />
               Stories
             </div>
-            <h1 className="mt-3 text-3xl font-black">Status</h1>
+            <h1 className="app-gradient-text mt-3 text-3xl font-black">Status</h1>
             <p className="mt-1 text-sm text-slate-400">
               Recent updates and replies
             </p>
@@ -288,7 +288,7 @@ export default function StatusSidebar() {
           <button
             type="button"
             onClick={fetchStories}
-            className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-300 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white"
+            className="app-icon-button rounded-2xl p-2.5"
             title="Refresh status"
           >
             <RefreshCw className="h-5 w-5" />
@@ -368,7 +368,10 @@ export default function StatusSidebar() {
             </div>
           ) : groupedStories.length === 0 ? (
             <div className="mx-5 app-empty-state rounded-[1.5rem] px-5 py-5 text-sm text-slate-400">
-              No stories yet
+              <p className="font-bold text-white">No stories yet</p>
+              <p className="mt-1 text-sm leading-6 text-slate-400">
+                Add a status update to start the recent stories feed.
+              </p>
             </div>
           ) : (
             groupedStories.map((group) => {
@@ -396,7 +399,7 @@ export default function StatusSidebar() {
                       : "border-white/5 bg-transparent"
                   }`}
                 >
-                  <div className="rounded-full border-2 border-cyan-300 p-0.5">
+                  <div className="app-status-ring rounded-full p-0.5">
                     {isVideoStatus(story) ? (
                       <video
                         className="size-12 rounded-full object-cover"
@@ -440,7 +443,7 @@ export default function StatusSidebar() {
         </div>
       </aside>
 
-      <main className="min-h-[58vh] bg-transparent md:min-h-screen">
+      <main className="app-chat-canvas min-h-[58vh] bg-transparent md:min-h-screen">
         <StatusCard
           story={selectedStory}
           currentUser={user}

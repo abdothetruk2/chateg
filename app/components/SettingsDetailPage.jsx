@@ -230,9 +230,9 @@ function SettingItem({ item, enabled, onToggle }) {
   const Icon = item.icon;
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-white/10 bg-black/15 p-4 transition hover:bg-white/[0.04]">
+    <div className="app-section-card flex items-center justify-between gap-4 rounded-2xl p-4 transition hover:bg-white/[0.04]">
       <div className="flex min-w-0 items-center gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/10 text-cyan-300">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-cyan-300">
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
@@ -292,14 +292,14 @@ export default function SettingsDetailPage({ type }) {
 
   return (
     <div className="mx-auto w-full max-w-5xl pb-24">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#07111c]/95 px-6 py-5 backdrop-blur-md lg:px-10">
+      <header className="app-surface sticky top-0 z-20 mx-4 mt-4 rounded-[1.5rem] px-6 py-5 lg:mx-8 lg:px-8">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-400">
           <span>{config.eyebrow}</span>
           <ChevronRight className="h-4 w-4" />
           <span className="text-white">{config.title}</span>
         </div>
         <div className="mt-4 flex items-start gap-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 ${config.accent}`}>
+          <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ${config.accent}`}>
             <Icon className="h-6 w-6" />
           </div>
           <div>
@@ -315,7 +315,7 @@ export default function SettingsDetailPage({ type }) {
 
       <div className="space-y-8 px-6 py-8 lg:px-10">
         {config.storage && (
-          <section className="rounded-lg border border-white/10 bg-white/[0.045] p-6">
+          <section className="app-premium-card rounded-[1.75rem] p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[2px] text-cyan-300">
@@ -324,7 +324,7 @@ export default function SettingsDetailPage({ type }) {
                 <h3 className="mt-2 text-3xl font-black text-white">1.2 GB</h3>
                 <p className="mt-1 text-sm text-slate-400">of 5.0 GB used</p>
               </div>
-              <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300">
                 <HardDrive className="h-8 w-8" />
               </div>
             </div>
@@ -332,16 +332,16 @@ export default function SettingsDetailPage({ type }) {
               <div className="h-full w-[24%] bg-cyan-400" />
             </div>
             <div className="mt-4 grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
-              <div className="rounded-lg bg-black/15 p-3">Photos: 420 MB</div>
-              <div className="rounded-lg bg-black/15 p-3">Videos: 610 MB</div>
-              <div className="rounded-lg bg-black/15 p-3">Files: 170 MB</div>
+              <div className="app-section-card rounded-2xl p-3">Photos: 420 MB</div>
+              <div className="app-section-card rounded-2xl p-3">Videos: 610 MB</div>
+              <div className="app-section-card rounded-2xl p-3">Files: 170 MB</div>
             </div>
           </section>
         )}
 
         {config.help && (
-          <section className="rounded-lg border border-white/10 bg-white/[0.045] p-6">
-            <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3">
+          <section className="app-premium-card rounded-[1.75rem] p-6">
+            <div className="app-input flex items-center gap-3 rounded-2xl px-4 py-3">
               <Search className="h-5 w-5 text-slate-400" />
               <input
                 type="search"
@@ -356,7 +356,7 @@ export default function SettingsDetailPage({ type }) {
                   <button
                     key={link.title}
                     type="button"
-                    className="rounded-lg border border-white/10 bg-black/15 p-5 text-left transition hover:bg-white/[0.04]"
+                    className="app-section-card rounded-2xl p-5 text-left transition hover:bg-white/[0.04]"
                   >
                     <LinkIcon className="h-6 w-6 text-amber-300" />
                     <p className="mt-4 font-bold text-white">{link.title}</p>
@@ -373,7 +373,7 @@ export default function SettingsDetailPage({ type }) {
         {(config.sections || []).map((section) => (
           <section
             key={section.title}
-            className="rounded-lg border border-white/10 bg-white/[0.045] p-6 shadow-sm"
+            className="app-premium-card rounded-[1.75rem] p-6 shadow-sm"
           >
             <h3 className="mb-5 text-lg font-bold text-white">{section.title}</h3>
             <div className="space-y-3">

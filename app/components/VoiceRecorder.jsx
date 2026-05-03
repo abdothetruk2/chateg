@@ -24,7 +24,7 @@ const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
 
     mediaRecorder.onstop = () => {
       const blob = new Blob(chunks.current, { type: "audio/mp3" });
-      onSend(blob); // نبعت الصوت
+      onSend(blob);
     };
 
     mediaRecorder.start();
@@ -42,7 +42,7 @@ const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
         <button
           type="button"
           onClick={startRecording}
-          className="rounded-lg border border-white/10 bg-white/5 p-3 text-slate-300 transition hover:bg-white/10 hover:text-white"
+          className="app-icon-button rounded-2xl p-3"
           title="Record voice"
         >
           <Mic className="h-5 w-5" />
@@ -51,7 +51,7 @@ const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
         <button
           type="button"
           onClick={stopRecording}
-          className="rounded-lg border border-red-400/20 bg-red-500/10 p-3 text-red-100 transition hover:bg-red-500/20"
+          className="rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-red-100 transition hover:-translate-y-0.5 hover:bg-red-500/20"
           title="Stop recording"
         >
           <Square className="h-5 w-5 fill-current" />

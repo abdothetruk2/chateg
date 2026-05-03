@@ -1,7 +1,7 @@
 export default function Loading() {
   return (
     <div className="app-shell flex min-h-screen items-center justify-center text-white">
-      <div className="app-scale-in app-surface flex flex-col items-center gap-5 rounded-[1.75rem] px-8 py-7">
+      <div className="app-scale-in app-premium-card app-loading-card flex flex-col items-center gap-5 rounded-[1.75rem] px-8 py-7">
         <div className="relative h-16 w-16">
           <div className="absolute inset-0 rounded-2xl border border-cyan-300/20 bg-cyan-300/10" />
           <div className="absolute inset-1 sidebar-load-ring rounded-2xl border-2 border-transparent border-t-cyan-300" />
