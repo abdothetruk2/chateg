@@ -22,7 +22,6 @@ import Cookies from "js-cookie";
 const items = [
   { name: "Posts", icon: Newspaper, href: "/posts" },
   { name: "Messages", icon: MessageSquare, href: "/chat" },
-  { name: "AI", icon: Bot, href: "/ai" },
   { name: "Rooms", icon: Hash, href: "/rooms" },
   { name: "Tasks", icon: ListTodo, href: "/todo" },
   { name: "Contacts", icon: Users, href: "/friends" },
@@ -44,7 +43,7 @@ export default function Sidebar() {
   }, [router]);
 
   return (
-    <aside className="app-sidebar app-panel fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-start gap-1 overflow-x-auto rounded-t-[1.75rem] border-t border-white/10 px-2 shadow-[0_-24px_44px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:sticky lg:top-0 lg:h-screen lg:w-[72px] lg:flex-col lg:justify-start lg:gap-2 lg:overflow-visible lg:rounded-none lg:border-r lg:border-t-0 lg:px-2 lg:py-4 lg:shadow-[inset_-1px_0_0_rgba(255,255,255,0.04),14px_0_42px_rgba(0,0,0,0.28)]">
+    <aside className="app-sidebar app-panel fixed inset-x-0 bottom-0 z-40 flex h-[calc(4rem_+_env(safe-area-inset-bottom))] items-center justify-start gap-1 overflow-x-auto rounded-t-[1.5rem] border-t border-white/10 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_44px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:rounded-t-[1.75rem] lg:sticky lg:top-0 lg:h-screen lg:w-[72px] lg:flex-col lg:justify-start lg:gap-2 lg:overflow-visible lg:rounded-none lg:border-r lg:border-t-0 lg:px-2 lg:py-4 lg:pb-4 lg:shadow-[inset_-1px_0_0_rgba(255,255,255,0.04),14px_0_42px_rgba(0,0,0,0.28)]">
       <Link
         href="/"
         className="mb-3 hidden h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/12 text-sm font-black text-cyan-100 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:border-cyan-300/45 hover:bg-cyan-300/18 lg:flex"
@@ -102,7 +101,7 @@ export default function Sidebar() {
               </span>
             </Button>
 
-            <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 hidden -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950/90 px-3 py-2 text-xs font-bold text-slate-100 opacity-0 shadow-xl transition group-hover:opacity-100 lg:block">
+            <span className="pointer-events-none absolute left-[calc(100%_+_0.75rem)] top-1/2 hidden -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950/90 px-3 py-2 text-xs font-bold text-slate-100 opacity-0 shadow-xl transition group-hover:opacity-100 lg:block">
               {item.name}
             </span>
           </Link>

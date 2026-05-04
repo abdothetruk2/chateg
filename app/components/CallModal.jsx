@@ -227,28 +227,28 @@ export default function CallModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-xl">
-      <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#0b0f19] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <div>
-            <h2 className="text-lg font-bold text-white">
+    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 p-2 backdrop-blur-xl sm:p-4">
+      <div className="flex max-h-[calc(100svh_-_1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#0b0f19] shadow-2xl sm:max-h-[calc(100svh_-_2rem)] sm:rounded-[2rem]">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-bold text-white sm:text-lg">
               {roomName || friendName || "Call"}
             </h2>
-            <p className="text-sm text-slate-400">{callStatus}</p>
+            <p className="truncate text-sm text-slate-400">{callStatus}</p>
           </div>
 
           {incomingCall && (
             <button
               onClick={acceptCall}
-              className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-600"
+              className="shrink-0 rounded-full bg-emerald-500 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600 sm:px-5"
             >
               Accept
             </button>
           )}
         </div>
 
-        <div className="relative grid gap-4 p-4 md:grid-cols-2">
-          <div className="relative h-[420px] overflow-hidden rounded-3xl bg-black">
+        <div className="relative min-h-0 flex-1 p-3 sm:p-4 md:grid md:grid-cols-2 md:gap-4">
+          <div className="relative h-[min(58svh,34rem)] min-h-[18rem] overflow-hidden rounded-[1.35rem] bg-black sm:rounded-3xl md:h-[420px] md:min-h-0">
             <video
               ref={remoteVideoRef}
               autoPlay
@@ -257,13 +257,13 @@ export default function CallModal({
             />
 
             {!hasRemoteVideo && (
-              <div className="absolute inset-0 flex items-center justify-center text-slate-500">
+              <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-slate-500">
                 Waiting for remote video...
               </div>
             )}
           </div>
 
-          <div className="relative h-[420px] overflow-hidden rounded-3xl bg-black">
+          <div className="absolute bottom-6 right-6 h-32 w-24 overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl shadow-black/50 sm:h-36 sm:w-28 md:relative md:bottom-auto md:right-auto md:h-[420px] md:w-auto md:rounded-3xl md:border-0 md:shadow-none">
             <video
               ref={localVideoRef}
               autoPlay
@@ -273,17 +273,19 @@ export default function CallModal({
             />
 
             {!camOn && (
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+              <div className="absolute inset-0 flex items-center justify-center px-3 text-center text-xs text-slate-400 sm:text-sm">
                 Camera off
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-4 border-t border-white/10 p-5">
+        <div className="flex shrink-0 items-center justify-center gap-3 border-t border-white/10 px-4 py-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))] sm:gap-4 sm:p-5 sm:pb-5">
           <button
             onClick={toggleMic}
             className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            type="button"
+            aria-label={micOn ? "Mute microphone" : "Unmute microphone"}
           >
             {micOn ? <Mic size={22} /> : <MicOff size={22} />}
           </button>
@@ -292,6 +294,8 @@ export default function CallModal({
             <button
               onClick={toggleCamera}
               className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              type="button"
+              aria-label={camOn ? "Turn camera off" : "Turn camera on"}
             >
               {camOn ? <Video size={22} /> : <VideoOff size={22} />}
             </button>
@@ -300,6 +304,8 @@ export default function CallModal({
           <button
             onClick={endCall}
             className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-500/30 hover:bg-red-600"
+            type="button"
+            aria-label="End call"
           >
             <PhoneOff size={24} />
           </button>

@@ -995,12 +995,12 @@ useEffect(() => {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex min-h-[calc(100vh-3.5rem)] overflow-hidden bg-transparent text-white md:h-screen">
+      <div className="flex h-[calc(100svh_-_4rem)] min-h-[calc(100svh_-_4rem)] overflow-hidden bg-transparent text-white lg:h-screen lg:min-h-screen">
         <main className="app-chat-canvas flex min-w-0 flex-1 flex-col border-r border-white/10">
-          <header className="app-surface relative z-20 mx-3 mt-3 flex items-center justify-between rounded-[1.5rem] px-4 py-3 md:mx-4 md:px-5">
-            <div className="min-w-0 flex-1 flex items-center gap-3">
+          <header className="app-surface relative z-20 mx-2 mt-2 flex items-center justify-between rounded-[1.25rem] px-3 py-2.5 sm:mx-3 sm:mt-3 sm:rounded-[1.5rem] sm:px-4 sm:py-3 md:mx-4 md:px-5">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <button
-                className="app-icon-button rounded-2xl p-2 md:hidden"
+                className="app-icon-button flex h-10 w-10 shrink-0 rounded-2xl p-0 md:hidden"
                 type="button"
                 onClick={onBack}
                 aria-label="Back to chats"
@@ -1008,9 +1008,9 @@ useEffect(() => {
                 <ArrowLeft className="h-5 w-5" />
               </button>
 
-              <div className="flex min-w-0 cursor-pointer items-center gap-3">
+              <div className="flex min-w-0 cursor-pointer items-center gap-2 sm:gap-3">
                 <div className="relative">
-                  <div className="relative h-12 w-12 overflow-hidden rounded-[1.25rem] ring-1 ring-white/10">
+                  <div className="relative h-10 w-10 overflow-hidden rounded-[1.1rem] ring-1 ring-white/10 sm:h-12 sm:w-12 sm:rounded-[1.25rem]">
                     <Image
                       src={selectedAvatar}
                       alt={selectedChatName || "User"}
@@ -1030,10 +1030,12 @@ useEffect(() => {
                 </div>
 
                 <div className="min-w-0">
-                  <h3 className="truncate font-black">{selectedChatName}</h3>
+                  <h3 className="truncate text-sm font-black sm:text-base">
+                    {selectedChatName}
+                  </h3>
 
                   <p
-                    className={`text-sm ${
+                    className={`truncate text-xs sm:text-sm ${
                       typingNames.length > 0 ? "text-cyan-200" : "text-slate-400"
                     }`}
                   >
@@ -1047,7 +1049,7 @@ useEffect(() => {
 
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <button
-                className="app-icon-button rounded-2xl p-2 disabled:cursor-not-allowed disabled:opacity-40"
+                className="app-icon-button flex h-10 w-10 rounded-2xl p-0 disabled:cursor-not-allowed disabled:opacity-40 sm:h-auto sm:w-auto sm:p-2"
                 type="button"
                 title={
                   selectedUser?.type === "group"
@@ -1062,7 +1064,7 @@ useEffect(() => {
                 <Video className="h-5 w-5" />
               </button>
               <button
-                className="app-icon-button rounded-2xl p-2 disabled:cursor-not-allowed disabled:opacity-40"
+                className="app-icon-button flex h-10 w-10 rounded-2xl p-0 disabled:cursor-not-allowed disabled:opacity-40 sm:h-auto sm:w-auto sm:p-2"
                 type="button"
                 title={
                   selectedUser?.type === "group"
@@ -1081,7 +1083,7 @@ useEffect(() => {
               </button>
               <button
                 onClick={() => setShowContactInfo((prev) => !prev)}
-                className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-2 text-cyan-200 transition hover:-translate-y-0.5 hover:bg-cyan-300/15"
+                className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-0 text-cyan-200 transition hover:-translate-y-0.5 hover:bg-cyan-300/15 lg:flex lg:h-auto lg:w-auto lg:p-2"
                 type="button"
               >
                 <Info className="h-5 w-5" />
@@ -1090,19 +1092,19 @@ useEffect(() => {
           </header>
 
           {showPinnedMessage && (
-            <div className="app-section-card relative z-10 mx-3 mt-3 flex items-start justify-between gap-3 rounded-[1.25rem] px-4 py-3 md:mx-4 md:px-5">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/12 text-cyan-200">
+            <div className="app-section-card relative z-10 mx-2 mt-2 flex items-start justify-between gap-2 rounded-[1.15rem] px-3 py-2.5 sm:mx-3 sm:mt-3 sm:gap-3 sm:rounded-[1.25rem] sm:px-4 sm:py-3 md:mx-4 md:px-5">
+              <div className="flex min-w-0 items-start gap-2 sm:gap-3">
+                <div className="mt-0.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/12 text-cyan-200 sm:flex">
                   <Pin className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <h4 className="text-sm font-black">Conversation brief</h4>
-                    <span className="app-mini-pill">
+                    <span className="app-mini-pill hidden sm:inline-flex">
                       {selectedPresenceLabel}
                     </span>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-400">
+                  <p className="mt-1 line-clamp-1 text-sm leading-5 text-slate-400 sm:line-clamp-2 sm:leading-6">
                     {conversationNote}
                   </p>
                 </div>
@@ -1119,12 +1121,12 @@ useEffect(() => {
             </div>
           )}
 
-          <div className="thin-scrollbar relative z-10 flex-1 overflow-y-auto px-4 py-6 md:px-6">
-            <div className="relative z-10 space-y-6">
+          <div className="thin-scrollbar relative z-10 flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 md:px-6">
+            <div className="relative z-10 space-y-4 sm:space-y-6">
               {messages.length === 0 && (
                 <div className="grid min-h-[42vh] place-items-center py-8">
-                  <div className="app-premium-card max-w-md rounded-[1.75rem] p-6 text-center">
-                    <div className="relative z-10 mx-auto h-20 w-20 overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20 shadow-2xl shadow-black/25">
+                  <div className="app-premium-card max-w-md rounded-[1.5rem] p-5 text-center sm:rounded-[1.75rem] sm:p-6">
+                    <div className="relative z-10 mx-auto h-16 w-16 overflow-hidden rounded-[1.25rem] border border-white/10 bg-black/20 shadow-2xl shadow-black/25 sm:h-20 sm:w-20 sm:rounded-[1.5rem]">
                       <Image
                         src={selectedAvatar}
                         alt={selectedChatName || "Conversation"}
@@ -1134,7 +1136,7 @@ useEffect(() => {
                       />
                     </div>
                     <div className="relative z-10 mt-5">
-                      <h3 className="text-xl font-black">
+                      <h3 className="text-lg font-black sm:text-xl">
                         Start with {selectedChatName || "this chat"}
                       </h3>
                       <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-300">
@@ -1160,12 +1162,12 @@ useEffect(() => {
                 return (
                   <div
                     key={msg.clientId || msg.id || index}
-                    className={`app-message-row group/message flex items-end gap-3 ${
+                    className={`app-message-row group/message flex items-end gap-2 sm:gap-3 ${
                       isMe ? "justify-end" : "justify-start"
                     }`}
                   >
                     {!isMe && (
-                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[1rem] ring-1 ring-white/10">
+                      <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-[0.9rem] ring-1 ring-white/10 sm:h-9 sm:w-9 sm:rounded-[1rem]">
                         <Image
                           src={msg.avatar || selectedAvatar}
                           alt={msg.sender || "avatar"}
@@ -1176,7 +1178,7 @@ useEffect(() => {
                       </div>
                     )}
 
-                    <div className="flex max-w-[85%] flex-col gap-1 md:max-w-[70%]">
+                    <div className="flex max-w-[88%] flex-col gap-1 sm:max-w-[85%] md:max-w-[70%]">
                       {!isMe && msg.type === "group" && (
                         <span className="px-1 text-xs text-cyan-200">
                           {msg.sender}
@@ -1200,7 +1202,7 @@ useEffect(() => {
                         )}
 
                         <div
-                          className={`app-bubble rounded-2xl px-4 py-3 ${
+                          className={`app-bubble rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 ${
                             isMe
                               ? "app-message-bubble-out rounded-br-md text-slate-950"
                               : "app-message-bubble-in rounded-bl-md text-slate-100"
@@ -1254,7 +1256,7 @@ useEffect(() => {
                               width={640}
                               height={420}
                               sizes="(max-width: 768px) 80vw, 520px"
-                              className="max-h-[260px] w-full rounded-2xl object-cover"
+                              className="max-h-[220px] w-full rounded-2xl object-cover sm:max-h-[260px]"
                             />
                           </div>
                         )}
@@ -1264,7 +1266,7 @@ useEffect(() => {
                             <video
                               src={mediaSrc}
                               controls
-                              className="max-h-[260px] w-full rounded-2xl"
+                              className="max-h-[220px] w-full rounded-2xl sm:max-h-[260px]"
                             />
                           </div>
                         )}
@@ -1273,7 +1275,7 @@ useEffect(() => {
                           <audio
                             src={mediaSrc}
                             controls
-                            className="mb-3 w-full min-w-[220px]"
+                            className="mb-3 w-[min(68vw,260px)] min-w-0"
                           />
                         )}
 
@@ -1345,8 +1347,8 @@ useEffect(() => {
               })}
 
               {typingNames.length > 0 && (
-                <div className="flex items-end gap-3">
-                  <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[1rem] ring-1 ring-white/10">
+                <div className="flex items-end gap-2 sm:gap-3">
+                  <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-[0.9rem] ring-1 ring-white/10 sm:h-9 sm:w-9 sm:rounded-[1rem]">
                     <Image
                       src={selectedAvatar}
                       alt="typing avatar"
@@ -1356,7 +1358,7 @@ useEffect(() => {
                     />
                   </div>
 
-                  <div className="typing-quick-bubble app-bubble rounded-2xl rounded-bl-md px-4 py-3">
+                  <div className="typing-quick-bubble app-bubble rounded-2xl rounded-bl-md px-3 py-2.5 sm:px-4 sm:py-3">
                     <div className="relative z-10 mb-1 flex items-center gap-2 text-xs font-bold text-cyan-100">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.8)]" />
                       {typingNames.join(", ")} typing fast
@@ -1375,7 +1377,7 @@ useEffect(() => {
             </div>
           </div>
 
-          <footer className="app-composer relative z-20 m-3 rounded-[1.5rem] p-3 md:m-4 md:p-4">
+          <footer className="app-composer relative z-20 m-2 rounded-[1.25rem] p-2 sm:m-3 sm:rounded-[1.5rem] sm:p-3 md:m-4 md:p-4">
             {previewUrl && (
               <div className="app-surface mb-4 rounded-[1.5rem] p-3">
                 <div className="mb-2 flex items-center justify-between">
@@ -1436,7 +1438,7 @@ useEffect(() => {
               </div>
             )}
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => inputRef.current?.click()}
                 className="app-icon-button hidden rounded-2xl p-3 sm:block"
@@ -1455,7 +1457,7 @@ useEffect(() => {
               />
               <VoiceRecorder onSend={sendVoice} />
               <div
-                className={`focus-within:border-cyan-300/35 relative flex flex-1 items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition ${
+                className={`focus-within:border-cyan-300/35 relative flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 transition sm:gap-3 sm:px-4 sm:py-3 ${
                   isComposing
                     ? "typing-compose-active border-cyan-300/45 bg-cyan-300/10 shadow-[0_0_28px_rgba(34,211,238,0.16)]"
                     : ""
@@ -1468,7 +1470,8 @@ useEffect(() => {
                     <span className="typing-spark typing-spark-three" aria-hidden="true" />
                   </>
                 )}
-                <button   className="text-slate-400 transition hover:text-white"
+                <button
+                  className="shrink-0 text-slate-400 transition hover:text-white"
                   type="button"
                   onClick={() => setShowMessageEmotions((prev) => !prev)}
                 >
@@ -1478,7 +1481,7 @@ useEffect(() => {
                 <input
                   ref={messageInputRef}
                   placeholder="Type a message..."
-                  className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-400 focus:outline-none"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-slate-400 focus:outline-none"
                   type="text"
                   value={message}
                   onChange={(e) => {
@@ -1494,7 +1497,7 @@ useEffect(() => {
                 />
 
                 <button
-                  className="text-slate-400 transition hover:text-white"
+                  className="shrink-0 text-slate-400 transition hover:text-white"
                   type="button"
                   onClick={() => inputRef.current?.click()}
                 >
@@ -1504,7 +1507,7 @@ useEffect(() => {
 
               <button
                 onClick={send}
-                className={`rounded-2xl bg-cyan-300 p-3 text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-300 p-0 text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-12 ${
                   message.trim() || mediaUrl ? "send-ready" : ""
                 }`}
                 disabled={(!message.trim() && !mediaUrl) || uploading}

@@ -42,7 +42,7 @@ const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
         <button
           type="button"
           onClick={startRecording}
-          className="app-icon-button rounded-2xl p-3"
+          className="app-icon-button flex h-11 w-11 items-center justify-center rounded-2xl p-0 sm:h-12 sm:w-12"
           title="Record voice"
         >
           <Mic className="h-5 w-5" />
@@ -51,7 +51,7 @@ const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
         <button
           type="button"
           onClick={stopRecording}
-          className="rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-red-100 transition hover:-translate-y-0.5 hover:bg-red-500/20"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl border border-red-400/25 bg-red-500/10 p-0 text-red-100 transition hover:-translate-y-0.5 hover:bg-red-500/20 sm:h-12 sm:w-12"
           title="Stop recording"
         >
           <Square className="h-5 w-5 fill-current" />

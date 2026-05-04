@@ -704,27 +704,29 @@ export default function Home() {
   }
 
   return (
-    <div className="app-shell grid min-h-screen grid-cols-1 pb-14 md:grid-cols-[minmax(20rem,23rem)_1fr] lg:grid-cols-[4.5rem_minmax(20rem,24rem)_1fr] lg:pb-0">
+    <div className="app-shell grid min-h-screen grid-cols-1 pb-[calc(4rem_+_env(safe-area-inset-bottom))] md:grid-cols-[minmax(20rem,23rem)_1fr] lg:grid-cols-[4.5rem_minmax(20rem,24rem)_1fr] lg:pb-0">
       <Sidebar />
 
       <aside
-        className={`app-panel min-h-[calc(100vh-4rem)] w-full flex-col border-b text-white md:flex md:h-screen md:border-b-0 md:border-r md:border-white/10 ${
+        className={`app-panel min-h-[calc(100svh_-_4rem)] w-full flex-col border-b text-white md:flex md:h-[calc(100svh_-_4rem)] md:border-b-0 md:border-r md:border-white/10 lg:h-screen ${
           selectedUser ? "hidden" : "flex"
         }`}
       >
-        <div className="border-b border-white/10 p-5">
-          <div className="mb-5 flex items-center justify-between">
+        <div className="border-b border-white/10 p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between sm:mb-5">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200/80">
                 Workspace
               </p>
-              <h2 className="app-gradient-text text-2xl font-black tracking-tight">Messages</h2>
-              <p className="mt-1 text-sm text-slate-400">
+              <h2 className="app-gradient-text text-2xl font-black tracking-tight">
+                Messages
+              </h2>
+              <p className="mt-1 hidden text-sm text-slate-400 sm:block">
                 Direct chats, groups, and live status activity.
               </p>
             </div>
 
-            <button className="app-icon-button rounded-2xl p-2.5">
+            <button className="app-icon-button rounded-2xl p-2.5" type="button">
               <MoreVertical className="h-5 w-5" />
             </button>
           </div>
@@ -739,14 +741,14 @@ export default function Home() {
             />
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4">
             {[
               ["Chats", filteredUsers.length],
               ["Unread", unreadThreads],
               ["Groups", groupCount || storyCount],
             ].map(([label, value]) => (
-              <div key={label} className="app-stat-card rounded-2xl px-3 py-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+              <div key={label} className="app-stat-card rounded-2xl px-2.5 py-2.5 sm:px-3 sm:py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 sm:text-[11px] sm:tracking-[0.16em]">
                   {label}
                 </p>
                 <p className="mt-1 text-lg font-black text-white">{value}</p>
@@ -756,10 +758,10 @@ export default function Home() {
 
           <div
             onClick={() => inputref.current?.click()}
-            className="no-scrollbar mt-5 flex cursor-pointer gap-3 overflow-x-auto pb-2"
+            className="no-scrollbar mt-4 flex cursor-pointer gap-3 overflow-x-auto pb-2 sm:mt-5"
           >
-            <div className="group flex min-w-[58px] flex-col items-center gap-2">
-              <div className="flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-dashed border-cyan-300/60 bg-cyan-300/10 transition group-hover:-translate-y-0.5 group-hover:bg-cyan-300/15">
+            <div className="group flex min-w-[54px] flex-col items-center gap-2 sm:min-w-[58px]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-dashed border-cyan-300/60 bg-cyan-300/10 transition group-hover:-translate-y-0.5 group-hover:bg-cyan-300/15 sm:h-14 sm:w-14 sm:rounded-[1.35rem]">
                 <Plus className="h-5 w-5 text-cyan-200" />
 
                 <input
@@ -781,7 +783,7 @@ export default function Home() {
                   e.stopPropagation();
                   setActiveStatus(statusItem);
                 }}
-                className="flex min-w-[70px] cursor-pointer flex-col items-center gap-2 transition-transform duration-100 hover:scale-105"
+                className="flex min-w-[62px] cursor-pointer flex-col items-center gap-2 transition-transform duration-100 hover:scale-105 sm:min-w-[70px]"
               >
                   <div
                   className={`rounded-full p-[2px] ${
@@ -790,7 +792,7 @@ export default function Home() {
                       : "app-status-ring"
                   }`}
                 >
-                  <div className="relative h-14 w-14 overflow-hidden rounded-full bg-[#0b1220] p-[2px]">
+                  <div className="relative h-12 w-12 overflow-hidden rounded-full bg-[#0b1220] p-[2px] sm:h-14 sm:w-14">
                     {isVideoStatus(statusItem) ? (
                       <video
                         src={statusItem.mediaUrl}
@@ -810,7 +812,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <span className="max-w-[70px] truncate text-xs font-semibold text-slate-300">
+                <span className="max-w-[62px] truncate text-xs font-semibold text-slate-300 sm:max-w-[70px]">
                   {String(statusItem.user?._id || "") === String(currentUser?._id || "")
                     ? "My Status"
                     : statusItem.user?.username || "Unknown"}
@@ -825,12 +827,12 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
+          <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1 sm:mt-4">
             {filters.map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5 ${
+                className={`whitespace-nowrap rounded-full border px-3 py-2 text-sm font-bold transition-all hover:-translate-y-0.5 sm:px-4 ${
                   activeFilter === filter
                     ? "border-cyan-300/30 bg-cyan-300/15 text-cyan-100"
                     : "border-white/10 bg-white/[0.045] text-slate-300 hover:bg-white/10 hover:text-white"
@@ -842,7 +844,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="p-5">
+        <div className="hidden p-5 sm:block">
           <Link href="/ai" className="app-surface hover-lift flex w-full items-center justify-between rounded-[1.5rem] p-4 text-left">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/15">
@@ -860,7 +862,7 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="thin-scrollbar flex-1 space-y-2 overflow-y-auto px-5 pb-5">
+        <div className="thin-scrollbar flex-1 space-y-2 overflow-y-auto px-4 pb-4 sm:px-5 sm:pb-5">
           {loading ? (
             <UserListLoader count={5} label="Loading chats" />
           ) : filteredUsers.length === 0 ? (
@@ -901,7 +903,7 @@ export default function Home() {
                     getMessages(user);
                     markMessagesRead(user);
                   }}
-                  className={`app-list-item group flex cursor-grab items-center gap-3 rounded-[1.5rem] p-3.5 active:cursor-grabbing ${
+                  className={`app-list-item group flex cursor-grab items-center gap-3 rounded-[1.25rem] p-3 active:cursor-grabbing sm:rounded-[1.5rem] sm:p-3.5 ${
                     isSelected
                       ? "border-cyan-300/35 bg-cyan-300/[0.12] shadow-lg shadow-cyan-950/20"
                       : ""
@@ -915,7 +917,7 @@ export default function Home() {
                 >
                   <GripVertical className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-cyan-200" />
                   <div className="relative">
-                    <div className="relative h-14 w-14 overflow-hidden rounded-[1.35rem] ring-1 ring-white/10">
+                    <div className="relative h-12 w-12 overflow-hidden rounded-[1.15rem] ring-1 ring-white/10 sm:h-14 sm:w-14 sm:rounded-[1.35rem]">
                       <Image
                         src={user?.avatar || "/avatar.jpg"}
                         alt={user?.username || user?.name || "User"}
@@ -1003,7 +1005,7 @@ export default function Home() {
           )}
         </div>
 
-        <div onClick={() => setopen(true)} className="border-t border-white/10 p-5">
+        <div onClick={() => setopen(true)} className="border-t border-white/10 p-4 sm:p-5">
           <div className="app-button-primary flex w-full py-3.5 font-semibold">
             <Plus className="h-5 w-5" />
             <span>Add Group</span>
@@ -1024,7 +1026,7 @@ export default function Home() {
 
       <div className={selectedUser ? "block" : "hidden md:block"}>
         <div
-          className={`min-h-[calc(100vh-3.5rem)] transition-all duration-300 md:h-screen ${
+          className={`min-h-[calc(100svh_-_4rem)] transition-all duration-300 md:h-[calc(100svh_-_4rem)] lg:h-screen ${
             selectedUser ? "opacity-100" : "opacity-70"
           }`}
         >
