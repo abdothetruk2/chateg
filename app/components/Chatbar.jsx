@@ -1468,11 +1468,10 @@ useEffect(() => {
                     <span className="typing-spark typing-spark-three" aria-hidden="true" />
                   </>
                 )}
-                <button
-                  className="text-slate-400 transition hover:text-white"
+                <button   className="text-slate-400 transition hover:text-white"
                   type="button"
                   onClick={() => setShowMessageEmotions((prev) => !prev)}
-                >scm-history-item:/home/abdokhater/chateg?%7B%22repositoryId%22%3A%22scm0%22%2C%22historyItemId%22%3A%22aa5fd1684ce0458707d5918a169a086011e252ef%22%2C%22historyItemParentId%22%3A%2228b0d3a262284b5ebc6e1b003bd966f08507a3c6%22%2C%22historyItemDisplayId%22%3A%22aa5fd16%22%7D
+                >
                   <Smile className="h-5 w-5" />
                 </button>
 
