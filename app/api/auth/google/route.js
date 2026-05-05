@@ -21,7 +21,7 @@ export async function GET(req) {
     return NextResponse.redirect(new URL("/login?oauth=google-missing", baseUrl));
   }
 
-  const callbackUrl = new URL("/api/auth/google/callback", baseUrl);
+  const callbackUrl = new URL("/api/auth/callback/google", baseUrl);
   const state = crypto.randomBytes(16).toString("hex");
   const authorizeUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authorizeUrl.searchParams.set("client_id", clientId);

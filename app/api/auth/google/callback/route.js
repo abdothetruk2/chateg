@@ -58,7 +58,7 @@ export async function GET(req) {
   }
 
   try {
-    const redirectUri = new URL("/api/auth/google/callback", baseUrl).toString();
+    const redirectUri = new URL(url.pathname, baseUrl).toString();
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
