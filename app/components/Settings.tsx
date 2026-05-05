@@ -34,6 +34,23 @@ import {
   saveClientPreferences,
 } from "../../lib/clientPreferences";
 
+function getCookieSafeUser(user) {
+  return {
+    _id: String(user?._id || ""),
+    username: user?.username || "",
+    email: user?.email || "",
+    avatar: user?.avatar || "/avatar.jpg",
+    provider: user?.provider || user?.oauthProvider || "local",
+  };
+}
+
+function setUserCookie(user) {
+  Cookies.set("user", JSON.stringify(getCookieSafeUser(user)), {
+    expires: 7,
+    sameSite: "lax",
+  });
+}
+
 export default function ProfileSettingsPage() {
   const inputRef = useRef(null);
   const coverInputRef = useRef(null);
@@ -222,7 +239,7 @@ export default function ProfileSettingsPage() {
         const updatedUser = { ...user, avatar: newAvatar };
         setUser(updatedUser);
         setPreviewUrl(newAvatar);
-        Cookies.set("user", JSON.stringify(updatedUser));
+        setUserCookie(updatedUser);
       }
 
       setSelectedFile(null);
@@ -271,7 +288,7 @@ export default function ProfileSettingsPage() {
         const updatedUser = { ...user, coverPhoto: newCoverPhoto };
         setUser(updatedUser);
         setCoverPreviewUrl(newCoverPhoto);
-        Cookies.set("user", JSON.stringify(updatedUser));
+        setUserCookie(updatedUser);
       }
 
       setSelectedCoverFile(null);
@@ -345,7 +362,7 @@ export default function ProfileSettingsPage() {
         messageSounds: updatedUser.messageSounds,
         callRingtone: updatedUser.callRingtone,
       });
-      Cookies.set("user", JSON.stringify(updatedUser));
+      setUserCookie(updatedUser);
       setMessage(data?.message || "Profile updated successfully.");
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to save profile.");

@@ -142,7 +142,7 @@ export default function LandingPage() {
             <Link href="/login" className="app-button-secondary px-4 py-3 text-sm">
               Login
             </Link>
-            <Link href="/posts" className="app-button-primary hidden px-4 py-3 text-sm sm:inline-flex">
+            <Link href="/post" className="app-button-primary hidden px-4 py-3 text-sm sm:inline-flex">
               Open App
               <ArrowRight className="h-4 w-4" />
             </Link>

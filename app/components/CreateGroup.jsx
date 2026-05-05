@@ -5,6 +5,9 @@ import Cookies from "js-cookie";
 import { AnimatePresence, motion } from "framer-motion";
 import { CircleXIcon, Users } from "lucide-react";
 import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { addGroup } from "../../features/groups/groupSlice";
+import { socket } from "../socket";
 
 function getCurrentUser() {
   try {
@@ -20,6 +23,8 @@ function getCurrentUser() {
 }
 
 export default function CreateGroup({ open, close }) {
+  const dispatch = useDispatch();
+  const reduxUser = useSelector((state) => state.user.user);
   const [group, setGroup] = useState({ name: "" });
   const [error, setError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -27,7 +32,7 @@ export default function CreateGroup({ open, close }) {
   async function handleCreateGroup(e) {
     e.preventDefault();
 
-    const user = getCurrentUser();
+    const user = reduxUser || getCurrentUser();
     const groupName = group.name.trim();
 
     if (!groupName) {
@@ -44,10 +49,17 @@ export default function CreateGroup({ open, close }) {
       setIsCreating(true);
       setError("");
 
-      await axios.post("/api/creategroup", {
+      const res = await axios.post("/api/creategroup", {
         name: groupName,
         user_id: user._id,
       });
+      const createdGroup = res.data?.group;
+
+      if (createdGroup?._id) {
+        dispatch(addGroup(createdGroup));
+        if (!socket.connected) socket.connect();
+        socket.emit("group:new", createdGroup);
+      }
 
       setGroup({ name: "" });
       close?.();

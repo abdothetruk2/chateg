@@ -1,6 +1,7 @@
 import { Geist_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "./components/ThemeProvider";
+import Providers from "./providers";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -68,9 +69,11 @@ export default function RootLayout({ children }) {
       className={`${manrope.variable} ${spaceGrotesk.variable} ${geistMono.variable}`}
     >
       <body className="app-shell min-h-screen flex flex-col font-sans antialiased">
-        <ThemeProvider>
-          <main className="flex-1">{children}</main>
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider>
+            <main className="flex-1">{children}</main>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

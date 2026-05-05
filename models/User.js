@@ -22,7 +22,11 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+    },
+    provider: {
+      type: String,
+      default: "local",
+      trim: true,
     },
     oauthProvider: {
       type: String,

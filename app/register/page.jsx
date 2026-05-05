@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import axios from "axios";
 import Cookies from "js-cookie";
 import {
@@ -13,9 +14,11 @@ import {
   UserPlus,
   UsersRound,
 } from "lucide-react";
+import { setUser } from "../../features/user/userSlice";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [form, setForm] = useState({ username: "", password: "", email: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,11 +36,12 @@ export default function RegisterPage() {
       const res = await axios.post("/api/register", form);
 
       Cookies.set("user", JSON.stringify(res.data.user), {
-        expires: 14,
+        expires: 7,
         sameSite: "lax",
       });
+      dispatch(setUser(res.data.user));
       setForm({ username: "", password: "", email: "" });
-      router.replace("/posts");
+      router.replace("/post");
       router.refresh();
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Register failed.");

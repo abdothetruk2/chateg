@@ -166,6 +166,12 @@ const io = new Server(httpServer, {
       socket.join(room);
       io.to(room).emit("message2", data);
     });
+    socket.on("group:new", function (group) {
+      if (group?._id) socket.broadcast.emit("group:new", group);
+    });
+    socket.on("status:new", function (status) {
+      if (status?._id) socket.broadcast.emit("status:new", status);
+    });
     socket.on("join-room", function (data) {
       const room = data?.room;
       if (!room) return;

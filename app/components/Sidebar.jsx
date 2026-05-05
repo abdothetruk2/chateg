@@ -20,7 +20,7 @@ import { Button } from "./ui/button";
 import { cn } from "../../lib/utils";
 import Cookies from "js-cookie";
 const items = [
-  { name: "Posts", icon: Newspaper, href: "/posts" },
+  { name: "Posts", icon: Newspaper, href: "/post" },
   { name: "Messages", icon: MessageSquare, href: "/chat" },
   { name: "Rooms", icon: Hash, href: "/rooms" },
   { name: "Tasks", icon: ListTodo, href: "/todo" },

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   MoreVertical,
   Search,
@@ -20,6 +21,8 @@ import UserListLoader from "../components/UserListLoader";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { playNotificationSound } from "../../lib/clientPreferences";
+import { setGroups } from "../../features/groups/groupSlice";
+import { addStatus, setStatuses } from "../../features/status/statusSlice";
 const filters = ["All", "Unread", "Groups", "Channels"];
 
 let socketPromise;
@@ -135,13 +138,15 @@ function groupStatusByUser(statusList) {
 
 export default function Home() {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const groups = useSelector((state) => state.groups.groups);
+  const statuses = useSelector((state) => state.status.statuses);
   const [selectedUser, setSelectedUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [messages, setMessages] = useState([]);
-  const [status, setStatus] = useState([]);
   const [activeStatus, setActiveStatus] = useState(null);
   const [read, setread] = useState([]);
   const [open, setopen] = useState(false);
@@ -154,7 +159,7 @@ export default function Home() {
   const inputref = useRef(null);
   const socketRef = useRef(null);
   const isAuthenticated = Boolean(currentUser?._id);
-  const groupedStatus = groupStatusByUser(status);
+  const groupedStatus = groupStatusByUser(statuses);
 
   useEffect(() => {
     setCurrentUser(getCurrentUser());
@@ -309,16 +314,21 @@ export default function Home() {
         mediaType,
         caption: "",
       });
+      const newStatus = createRes.data;
 
-      setStatus((prev) => [createRes.data, ...prev]);
+      dispatch(addStatus(newStatus));
+      const socket = socketRef.current || (await loadSocket());
+      socketRef.current = socket;
+      if (!socket.connected) socket.connect();
+      socket.emit("status:new", newStatus);
 
-      const userId = String(createRes.data?.user?._id || createRes.data?.user || "");
-      const userStories = [createRes.data, ...status].filter(
+      const userId = String(newStatus?.user?._id || newStatus?.user || "");
+      const userStories = [newStatus, ...statuses].filter(
         (item) => String(item?.user?._id || item?.user || "") === userId
       );
 
       setActiveStatus({
-        ...createRes.data,
+        ...newStatus,
         stories: userStories.sort(
           (a, b) =>
             new Date(a?.createdAt || 0).getTime() -
@@ -351,11 +361,13 @@ export default function Home() {
       }
 
       if (reply) {
-        setStatus((prev) =>
-          prev.map((item) =>
+        dispatch(
+          setStatuses(
+            statuses.map((item) =>
             item._id === statusItem._id
               ? { ...item, replies: [...(item.replies || []), reply] }
               : item
+            )
           )
         );
 
@@ -404,10 +416,10 @@ export default function Home() {
     async function getStatus() {
       try {
         const res = await axios.get("/api/story/all");
-        setStatus(Array.isArray(res.data) ? res.data : []);
+        dispatch(setStatuses(Array.isArray(res.data) ? res.data : []));
       } catch (error) {
         console.error("Status fetch error:", error);
-        setStatus([]);
+        dispatch(setStatuses([]));
       }
     }
 
@@ -424,10 +436,10 @@ export default function Home() {
 
         const data = await res.json();
 
-        const combined = [
-          ...(Array.isArray(data) ? data : []),
-          ...(Array.isArray(groupRes.data) ? groupRes.data : []),
-        ];
+        const fetchedGroups = Array.isArray(groupRes.data) ? groupRes.data : [];
+        dispatch(setGroups(fetchedGroups));
+
+        const combined = [...(Array.isArray(data) ? data : []), ...fetchedGroups];
 
         setUsers(combined);
       } catch (err) {
@@ -444,7 +456,14 @@ export default function Home() {
       getUnreadMessages();
       getStatus();
     });
-  }, []);
+  }, [dispatch]);
+
+  useEffect(() => {
+    setUsers((prev) => {
+      const nonGroups = prev.filter((user) => user?.type !== "group");
+      return [...nonGroups, ...groups];
+    });
+  }, [groups]);
 
   useEffect(() => {
     const currentUser = getCurrentUser();

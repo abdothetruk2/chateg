@@ -1,35 +1,8 @@
-import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import connectDB from "../../../../../lib/mongoose";
 import { getAuthCookie, sanitizeUser } from "../../../../../lib/auth";
-import { hashPassword } from "../../../../../lib/password";
+import { findOrCreateGoogleUser } from "../../../../../lib/googleAuth";
 import { ensurePublicRoomIncludesUser } from "../../../../../lib/publicRoom";
-import User from "../../../../../models/User";
-
-function normalizeUsername(value = "", fallback = "google-user") {
-  const normalized = String(value)
-    .toLowerCase()
-    .replace(/@.*/, "")
-    .replace(/[^a-z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 28);
-
-  return normalized || fallback;
-}
-
-async function getUniqueUsername(baseUsername) {
-  const base = normalizeUsername(baseUsername);
-  let username = base;
-  let suffix = 0;
-
-  while (await User.exists({ username })) {
-    suffix += 1;
-    username = `${base.slice(0, 24)}-${suffix}`;
-  }
-
-  return username;
-}
 
 function getBaseUrl(req) {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
@@ -105,43 +78,21 @@ export async function GET(req) {
 
     await connectDB();
 
-    let user =
-      (await User.findOne({ oauthProvider: "google", oauthId })) ||
-      (await User.findOne({ email }));
-
-    if (!user) {
-      user = await User.create({
-        username: await getUniqueUsername(email || profile.name),
-        email,
-        password: await hashPassword(crypto.randomBytes(24).toString("hex")),
-        avatar: profile.picture || "/avatar.jpg",
-        about: "Signed in with Google.",
-        developerName: profile.name || "Google user",
-        oauthProvider: "google",
-        oauthId,
-        status: true,
-        displayname: "online",
-      });
-    } else {
-      user = await User.findByIdAndUpdate(
-        user._id,
-        {
-          oauthProvider: "google",
-          oauthId,
-          avatar: user.avatar || profile.picture || "/avatar.jpg",
-          developerName: user.developerName || profile.name || "Google user",
-          status: true,
-          displayname: "online",
-        },
-        { returnDocument: "after" }
-      );
-    }
+    const user = await findOrCreateGoogleUser({
+      email,
+      name: profile.name,
+      picture: profile.picture,
+      oauthId,
+    });
 
     await ensurePublicRoomIncludesUser(user._id);
 
     const safeUser = sanitizeUser(user);
-    const response = NextResponse.redirect(new URL("/posts", baseUrl));
-    response.headers.append("Set-Cookie", getAuthCookie(safeUser));
+    const response = NextResponse.redirect(new URL("/post", baseUrl));
+    response.headers.append(
+      "Set-Cookie",
+      getAuthCookie(safeUser, { maxAge: 60 * 60 * 24 * 7 })
+    );
     response.cookies.delete("google_oauth_state");
 
     return response;

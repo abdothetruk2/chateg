@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDispatch } from "react-redux";
 import Cookies from "js-cookie";
 import axios from "axios";
 import {
@@ -13,19 +14,49 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { setUser } from "../../features/user/userSlice";
+
+const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+function parseCookieUser() {
+  const rawUser = Cookies.get("user");
+  if (!rawUser) return null;
+
+  const parsedUser = JSON.parse(rawUser);
+  return Array.isArray(parsedUser) ? parsedUser[0] : parsedUser;
+}
+
+function parseJwtPayload(token = "") {
+  const payload = token.split(".")[1];
+  if (!payload) return null;
+
+  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+  const json = decodeURIComponent(
+    atob(base64)
+      .split("")
+      .map((char) => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
+      .join("")
+  );
+
+  return JSON.parse(json);
+}
 
 export default function LoginPage() {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const googleButtonRef = useRef(null);
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDemoSubmitting, setIsDemoSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   function storeUser(user) {
     Cookies.set("user", JSON.stringify(user), {
-      expires: 14,
+      expires: 7,
       sameSite: "lax",
     });
+    dispatch(setUser(user));
   }
 
   function handleChange(e) {
@@ -42,7 +73,7 @@ export default function LoginPage() {
 
       storeUser(res.data.user);
       setForm({ username: "", password: "" });
-      router.replace("/posts");
+      router.replace("/post");
       router.refresh();
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || "Login failed.");
@@ -58,7 +89,7 @@ export default function LoginPage() {
       const res = await axios.post("/api/demo-login");
 
       storeUser(res.data.user);
-      router.replace("/posts");
+      router.replace("/post");
       router.refresh();
     } catch (err) {
       setError(
@@ -71,7 +102,50 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGoogleCredential(response) {
+    try {
+      setIsGoogleSubmitting(true);
+      setError("");
+
+      const profile = parseJwtPayload(response?.credential);
+      if (!profile?.email) {
+        throw new Error("Invalid Google response.");
+      }
+
+      const res = await axios.post("/api/auth/google", {
+        email: profile.email,
+        name: profile.name,
+        picture: profile.picture,
+      });
+
+      if (!res.data?.success || !res.data?.user) {
+        throw new Error(res.data?.error || "Google login failed.");
+      }
+
+      storeUser(res.data.user);
+      router.replace("/post");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err.response?.data?.error || err.message || "Google login failed."
+      );
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  }
+
   useEffect(() => {
+    try {
+      const cookieUser = parseCookieUser();
+      if (cookieUser?._id) {
+        dispatch(setUser(cookieUser));
+        router.replace("/post");
+        return;
+      }
+    } catch {
+      Cookies.remove("user");
+    }
+
     const params = new URLSearchParams(window.location.search);
     const oauth = params.get("oauth");
 
@@ -85,6 +159,53 @@ export default function LoginPage() {
       handleDemoLogin();
     }
     // Run only once when the login page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, router]);
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return;
+
+    let cancelled = false;
+
+    function renderGoogleButton() {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) {
+        return;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredential,
+      });
+
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        type: "standard",
+        text: "continue_with",
+        shape: "pill",
+        width: googleButtonRef.current.offsetWidth || 320,
+      });
+    }
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = renderGoogleButton;
+    script.onerror = () => setError("Could not load Google login.");
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+    };
+    // Google button should initialize once with the first stable callback.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -237,13 +358,22 @@ export default function LoginPage() {
                 {isDemoSubmitting ? "Opening demo..." : "Continue with demo account"}
               </button>
 
-              <a
-                href="/api/auth/google"
-                className="app-button-ghost flex w-full py-3.5 text-sm shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
-              >
-                <Code2 className="h-4 w-4" />
-                Continue with Google
-              </a>
+              {googleClientId ? (
+                <div
+                  ref={googleButtonRef}
+                  className={`w-full overflow-hidden rounded-full ${
+                    isGoogleSubmitting ? "pointer-events-none opacity-60" : ""
+                  }`}
+                />
+              ) : (
+                <a
+                  href="/api/auth/google"
+                  className="app-button-ghost flex w-full py-3.5 text-sm shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+                >
+                  <Code2 className="h-4 w-4" />
+                  Continue with Google
+                </a>
+              )}
             </div>
           </div>
         </section>

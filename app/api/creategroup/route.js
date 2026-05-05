@@ -5,21 +5,41 @@ import { NextResponse } from "next/server";
 export async function POST(req) {
   try {
     const body = await req.json();
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const userId = typeof body.user_id === "string" ? body.user_id : "";
+
+    if (!name || !userId) {
+      return NextResponse.json(
+        { error: "Group name and user_id are required" },
+        { status: 400 }
+      );
+    }
 
     await connectDB();
 
     const group = await Group.create({
-      name: body.name,
-      admin: body.user_id,
-      members: [body.user_id], // الأدمن يبقى أول عضو
+      name,
+      admin: userId,
+      members: [userId],
     });
+    const populatedGroup = await Group.findById(group._id)
+      .populate("members", "username email avatar")
+      .populate("approve", "username email avatar")
+      .populate("admin", "username email avatar");
 
     return NextResponse.json(
-      { message: "Group created", group },
+      { message: "Group created", group: populatedGroup },
       { status: 201 }
     );
 
   } catch (error) {
+    if (error?.code === 11000) {
+      return NextResponse.json(
+        { error: "A group with this name already exists." },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   MoreVertical,
   Search,
@@ -20,6 +21,7 @@ import axios from "axios";
 import CreateGroup from "../components/CreateGroup";
 import StatusViewer from "../components/StatusViewer";
 import { socket } from "../socket";
+import { addStatus, setStatuses } from "../../features/status/statusSlice";
 
 const filters = ["All", "Unread", "Groups", "Channels"];
 
@@ -77,13 +79,14 @@ function isVideoStatus(statusItem) {
 }
 
 export default function FriendsPage() {
+  const dispatch = useDispatch();
+  const statuses = useSelector((state) => state.status.statuses);
   const [selectedUser, setSelectedUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [messages, setMessages] = useState([]);
-  const [status, setStatus] = useState([]);
   const [activeStatus, setActiveStatus] = useState(null);
   const [read, setread] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -92,7 +95,7 @@ export default function FriendsPage() {
   const [currentUser, setCurrentUser] = useState(null);
 
   const inputref = useRef(null);
-  const groupedStatus = groupStatusByUser(status);
+  const groupedStatus = groupStatusByUser(statuses);
 
   useEffect(() => {
     setCurrentUser(getCurrentUser());
@@ -165,7 +168,7 @@ export default function FriendsPage() {
             ? friendsRes.data.sentFriendRequests
             : []
         );
-        setStatus(Array.isArray(storyRes.data) ? storyRes.data : []);
+        dispatch(setStatuses(Array.isArray(storyRes.data) ? storyRes.data : []));
         setread(Array.isArray(unreadRes.data?.unread) ? unreadRes.data.unread : []);
       } catch (error) {
         console.error("Friends page load error:", error);
@@ -178,7 +181,7 @@ export default function FriendsPage() {
     }
 
     loadPage();
-  }, [currentUser?._id, currentUser?.username]);
+  }, [currentUser?._id, currentUser?.username, dispatch]);
 
   async function getMessages(user) {
     try {
@@ -281,7 +284,10 @@ export default function FriendsPage() {
         caption: "",
       });
 
-      setStatus((prev) => [createRes.data, ...prev]);
+      const newStatus = createRes.data;
+      dispatch(addStatus(newStatus));
+      if (!socket.connected) socket.connect();
+      socket.emit("status:new", newStatus);
     } catch (error) {
       console.error("Status upload error:", error);
     } finally {
@@ -308,11 +314,13 @@ export default function FriendsPage() {
       }
 
       if (reply) {
-        setStatus((prev) =>
-          prev.map((item) =>
+        dispatch(
+          setStatuses(
+            statuses.map((item) =>
             item._id === statusItem._id
               ? { ...item, replies: [...(item.replies || []), reply] }
               : item
+            )
           )
         );
       }

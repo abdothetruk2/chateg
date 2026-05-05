@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useDispatch, useSelector } from "react-redux";
 import { Plus, RefreshCw } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import StatusCard from "../components/Status";
 import UserListLoader from "../components/UserListLoader";
 import { socket } from "../socket";
+import { addStatus, setStatuses } from "../../features/status/statusSlice";
 
 function getCurrentUser() {
   try {
@@ -81,13 +83,14 @@ function groupStoriesByUser(stories) {
 }
 
 export default function StatusSidebar() {
+  const dispatch = useDispatch();
+  const stories = useSelector((state) => state.status.statuses);
   const inputRef = useRef(null);
 
   const [user, setUser] = useState(null);
   const [preview, setPreview] = useState("/avatar.jpg");
   const [previewType, setPreviewType] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [stories, setStories] = useState([]);
   const [selectedStory, setSelectedStory] = useState(null);
   const [loadingStories, setLoadingStories] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -114,7 +117,7 @@ export default function StatusSidebar() {
       const res = await axios.get("/api/story/all");
       const fetchedStories = Array.isArray(res.data) ? res.data : [];
 
-      setStories(fetchedStories);
+      dispatch(setStatuses(fetchedStories));
 
       setSelectedStory((current) => {
         if (!fetchedStories.length) return null;
@@ -131,12 +134,12 @@ export default function StatusSidebar() {
     } catch (error) {
       console.error("Fetch stories error:", error);
       setLoadError("Could not load status updates.");
-      setStories([]);
+      dispatch(setStatuses([]));
       setSelectedStory(null);
     } finally {
       setLoadingStories(false);
     }
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     fetchStories();
@@ -217,7 +220,9 @@ export default function StatusSidebar() {
 
       setPreview(mediaUrl);
       setPreviewType(mediaType);
-      setStories((prev) => [newStory, ...prev]);
+      dispatch(addStatus(newStory));
+      if (!socket.connected) socket.connect();
+      socket.emit("status:new", newStory);
       setSelectedStory(newStory);
     } catch (error) {
       console.error("Upload error:", error);
@@ -250,11 +255,13 @@ export default function StatusSidebar() {
     }
 
     if (reply) {
-      setStories((prev) =>
-        prev.map((item) =>
+      dispatch(
+        setStatuses(
+          stories.map((item) =>
           item._id === story._id
             ? { ...item, replies: [...(item.replies || []), reply] }
             : item
+          )
         )
       );
 

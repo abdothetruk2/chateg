@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import Cookies from "js-cookie";
 import {
@@ -15,6 +16,7 @@ import {
   Video,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import { setGroups } from "../../features/groups/groupSlice";
 
 function getCurrentUser() {
   try {
@@ -42,7 +44,8 @@ function RoomSkeleton() {
 }
 
 export default function RoomsPage() {
-  const [rooms, setRooms] = useState([]);
+  const dispatch = useDispatch();
+  const rooms = useSelector((state) => state.groups.groups);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
@@ -56,17 +59,17 @@ export default function RoomsPage() {
       try {
         setLoading(true);
         const res = await axios.get("/api/groups");
-        setRooms(Array.isArray(res.data) ? res.data : []);
+        dispatch(setGroups(Array.isArray(res.data) ? res.data : []));
       } catch (error) {
         console.error("Rooms fetch failed:", error);
-        setRooms([]);
+        dispatch(setGroups([]));
       } finally {
         setLoading(false);
       }
     }
 
     loadRooms();
-  }, []);
+  }, [dispatch]);
 
   const filteredRooms = useMemo(() => {
     const query = search.trim().toLowerCase();
