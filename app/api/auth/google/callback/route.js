@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "../../../../../lib/mongoose";
-import { getAuthCookie, sanitizeUser } from "../../../../../lib/auth";
+import { sanitizeUser, setAuthCookie } from "../../../../../lib/auth";
 import { findOrCreateGoogleUser } from "../../../../../lib/googleAuth";
 import { ensurePublicRoomIncludesUser } from "../../../../../lib/publicRoom";
 
@@ -72,7 +72,7 @@ export async function GET(req) {
     const oauthId = String(profile.sub || "");
     const email = String(profile.email || "").toLowerCase();
 
-    if (!oauthId || !email) {
+    if (!oauthId || !email || profile.email_verified === false) {
       return NextResponse.redirect(new URL("/login?oauth=failed", baseUrl));
     }
 
@@ -89,10 +89,7 @@ export async function GET(req) {
 
     const safeUser = sanitizeUser(user);
     const response = NextResponse.redirect(new URL("/post", baseUrl));
-    response.headers.append(
-      "Set-Cookie",
-      getAuthCookie(safeUser, { maxAge: 60 * 60 * 24 * 7 })
-    );
+    setAuthCookie(response, safeUser);
     response.cookies.delete("google_oauth_state");
 
     return response;

@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import axios from "axios";
 import {
-  Bot,
   CircleAlert,
   Hash,
   Loader2,
   ListTodo,
+  LogOut,
   Puzzle,
   MessageSquare,
   Newspaper,
@@ -19,6 +21,8 @@ import {
 import { Button } from "./ui/button";
 import { cn } from "../../lib/utils";
 import Cookies from "js-cookie";
+import { clearUser } from "../../features/user/userSlice";
+import { socket } from "../socket";
 const items = [
   { name: "Posts", icon: Newspaper, href: "/post" },
   { name: "Messages", icon: MessageSquare, href: "/chat" },
@@ -34,13 +38,33 @@ const items = [
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useDispatch();
   const [pendingHref, setPendingHref] = useState("");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!Cookies.get("user")) {
       router.push("/login");
     }
   }, [router]);
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+
+    try {
+      setIsLoggingOut(true);
+      await axios.post("/api/logout");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      Cookies.remove("user", { path: "/" });
+      dispatch(clearUser());
+      if (socket.connected) socket.disconnect();
+      router.replace("/login");
+      router.refresh();
+      setIsLoggingOut(false);
+    }
+  }
 
   return (
     <aside className="app-sidebar app-panel fixed inset-x-0 bottom-0 z-40 flex h-[calc(4rem_+_env(safe-area-inset-bottom))] items-center justify-start gap-1 overflow-x-auto rounded-t-[1.5rem] border-t border-white/10 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_44px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:rounded-t-[1.75rem] lg:sticky lg:top-0 lg:h-screen lg:w-[72px] lg:flex-col lg:justify-start lg:gap-2 lg:overflow-visible lg:rounded-none lg:border-r lg:border-t-0 lg:px-2 lg:py-4 lg:pb-4 lg:shadow-[inset_-1px_0_0_rgba(255,255,255,0.04),14px_0_42px_rgba(0,0,0,0.28)]">
@@ -107,6 +131,30 @@ export default function Sidebar() {
           </Link>
         );
       })}
+      <div className="group relative shrink-0">
+        <Button
+          variant="ghost"
+          type="button"
+          title="Logout"
+          aria-label="Logout"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="relative flex h-11 min-w-11 items-center justify-center gap-2 rounded-2xl border border-transparent bg-transparent px-3 text-slate-400 transition-all duration-200 hover:-translate-y-0.5 hover:border-red-300/20 hover:bg-red-500/10 hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-60 sm:h-12 lg:h-11 lg:w-11 lg:min-w-0 lg:px-0"
+        >
+          {isLoggingOut ? (
+            <Loader2 className="sidebar-load-ring relative z-10" size={21} />
+          ) : (
+            <LogOut className="relative z-10" size={22} />
+          )}
+          <span className="relative z-10 hidden text-xs font-black text-red-100 sm:inline lg:hidden">
+            Logout
+          </span>
+        </Button>
+
+        <span className="pointer-events-none absolute left-[calc(100%_+_0.75rem)] top-1/2 hidden -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950/90 px-3 py-2 text-xs font-bold text-slate-100 opacity-0 shadow-xl transition group-hover:opacity-100 lg:block">
+          Logout
+        </span>
+      </div>
       <div className="mt-auto hidden w-full pb-1 text-center text-[10px] font-bold uppercase leading-4 tracking-[0.24em] text-slate-500 lg:block">
         <span className="block text-cyan-200">Live</span>
         <span>Chat</span>

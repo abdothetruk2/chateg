@@ -7,6 +7,7 @@ const publicApiRoutes = [
   "/api/demo-login",
   "/api/health",
   "/api/login",
+  "/api/logout",
   "/api/register",
 ];
 

@@ -1,7 +1,7 @@
 import connectDB from "../../../lib/mongoose";
-import User from "../../../models/User"
+import User from "../../../models/User";
 import { NextResponse } from "next/server";
-import { sanitizeUser } from "../../../lib/auth";
+import { sanitizeUser, setAuthCookie } from "../../../lib/auth";
 import { hashPassword } from "../../../lib/password";
 import { ensurePublicRoomIncludesUser } from "../../../lib/publicRoom";
 
@@ -34,13 +34,16 @@ export async function POST(req) {
     safeUser.status = true;
     safeUser.displayname = "online";
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "Register successful",
         user: safeUser,
       },
       { status: 201 }
     );
+
+    setAuthCookie(response, safeUser);
+    return response;
   } catch (error) {
     if (error?.code === 11000) {
       return NextResponse.json(

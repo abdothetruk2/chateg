@@ -1,8 +1,11 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import connectDB from "../../../../lib/mongoose";
-import { sanitizeUser } from "../../../../lib/auth";
-import { findOrCreateGoogleUser } from "../../../../lib/googleAuth";
+import { sanitizeUser, setAuthCookie } from "../../../../lib/auth";
+import {
+  findOrCreateGoogleUser,
+  verifyGoogleCredential,
+} from "../../../../lib/googleAuth";
 import { ensurePublicRoomIncludesUser } from "../../../../lib/publicRoom";
 
 function getBaseUrl(req) {
@@ -50,21 +53,23 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const body = await req.json();
+    const profile = await verifyGoogleCredential(body?.credential);
 
     await connectDB();
 
-    const user = await findOrCreateGoogleUser({
-      email: body?.email,
-      name: body?.name,
-      picture: body?.picture,
-    });
+    const user = await findOrCreateGoogleUser(profile);
 
     await ensurePublicRoomIncludesUser(user._id);
 
-    return NextResponse.json({
+    const safeUser = sanitizeUser(user);
+    const response = NextResponse.json({
       success: true,
-      user: sanitizeUser(user),
+      user: safeUser,
+      redirectTo: "/post",
     });
+
+    setAuthCookie(response, safeUser);
+    return response;
   } catch (error) {
     return NextResponse.json(
       {

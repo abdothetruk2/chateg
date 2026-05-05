@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { allEmotionEmojis } from "../../lib/emotions";
+import { playNotificationSound } from "../../lib/clientPreferences";
 import {
   BadgeCheck,
+  BellRing,
   Briefcase,
   CalendarDays,
   Code2,
@@ -25,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import { socket } from "../socket";
 
 function getCurrentUser() {
   try {
@@ -67,6 +70,17 @@ function hasLiked(post, userId) {
   return (post?.likes || []).some((item) => String(item) === String(userId));
 }
 
+function getLatestComment(post) {
+  const comments = Array.isArray(post?.comments) ? post.comments : [];
+  return comments[comments.length - 1] || null;
+}
+
+function compactText(value = "", maxLength = 84) {
+  const text = String(value || "").trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1)}...`;
+}
+
 function PostsSkeleton() {
   return (
     <div className="space-y-4">
@@ -95,6 +109,8 @@ function PostsSkeleton() {
 export default function PostsPage() {
   const fileInputRef = useRef(null);
   const commentInputRefs = useRef({});
+  const commentNoticeTimeoutRef = useRef(null);
+  const commentHighlightTimeoutRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [content, setContent] = useState("");
@@ -111,9 +127,41 @@ export default function PostsPage() {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
+  const [commentNotice, setCommentNotice] = useState(null);
+  const [highlightedCommentId, setHighlightedCommentId] = useState("");
+
+  const showCommentNotice = useCallback(({ post, comment, title }) => {
+    const commentId = String(comment?._id || "");
+
+    setCommentNotice({
+      title,
+      message: compactText(comment?.message || ""),
+      post: compactText(post?.content || "Media post", 72),
+    });
+
+    if (commentId) {
+      setHighlightedCommentId(commentId);
+      clearTimeout(commentHighlightTimeoutRef.current);
+      commentHighlightTimeoutRef.current = setTimeout(() => {
+        setHighlightedCommentId("");
+      }, 1800);
+    }
+
+    clearTimeout(commentNoticeTimeoutRef.current);
+    commentNoticeTimeoutRef.current = setTimeout(() => {
+      setCommentNotice(null);
+    }, 3200);
+  }, []);
 
   useEffect(() => {
     setCurrentUser(getCurrentUser());
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(commentNoticeTimeoutRef.current);
+      clearTimeout(commentHighlightTimeoutRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -133,6 +181,50 @@ export default function PostsPage() {
 
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    if (!currentUser?.username) return;
+
+    function onConnect() {
+      socket.emit("user", currentUser.username);
+    }
+
+    function onPostComment(data) {
+      const nextPost = data?.post;
+      if (!nextPost?._id) return;
+
+      setPosts((prev) =>
+        prev.map((post) => (post._id === nextPost._id ? nextPost : post))
+      );
+
+      const comment = data?.comment || getLatestComment(nextPost);
+      const commenterId =
+        data?.commenterId || comment?.user?._id || comment?.user || "";
+
+      if (String(commenterId) === String(currentUser._id)) return;
+
+      playNotificationSound("message");
+      showCommentNotice({
+        post: nextPost,
+        comment,
+        title: `${comment?.user?.username || data?.commenterName || "Someone"} commented`,
+      });
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("post:comment", onPostComment);
+
+    if (socket.connected) {
+      onConnect();
+    } else {
+      socket.connect();
+    }
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("post:comment", onPostComment);
+    };
+  }, [currentUser?._id, currentUser?.username, showCommentNotice]);
 
   function updatePost(nextPost) {
     setPosts((prev) =>
@@ -219,16 +311,37 @@ export default function PostsPage() {
     if (!message || !currentUser?._id) return;
 
     try {
+      setError("");
       const res = await axios.patch(`/api/posts/${post._id}`, {
         action: "comment",
         userId: currentUser._id,
         message,
       });
 
-      updatePost(res.data);
+      const nextPost = res.data;
+      const newComment = getLatestComment(nextPost);
+
+      updatePost(nextPost);
       setCommentDrafts((prev) => ({ ...prev, [post._id]: "" }));
+      setOpenEmotionPostId("");
+
+      if (newComment) {
+        showCommentNotice({
+          post: nextPost,
+          comment: newComment,
+          title: "Comment posted",
+        });
+
+        socket.emit("post:comment", {
+          post: nextPost,
+          comment: newComment,
+          commenterId: currentUser._id,
+          commenterName: currentUser.username,
+        });
+      }
     } catch (commentError) {
       console.error("Comment failed:", commentError);
+      setError("Could not send comment.");
     }
   }
 
@@ -328,6 +441,31 @@ export default function PostsPage() {
       <Sidebar />
 
       <main className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8">
+        {commentNotice && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="comment-notice pointer-events-none fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-cyan-300/20 bg-slate-950/95 p-4 text-white shadow-[0_18px_46px_rgba(0,0,0,0.34)] backdrop-blur-xl sm:right-6 sm:top-6"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-100">
+                <BellRing className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-cyan-100">
+                  {commentNotice.title}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {commentNotice.message}
+                </p>
+                <p className="mt-1 truncate text-xs text-slate-400">
+                  {commentNotice.post}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <header className="app-page-header">
           <div>
             <div className="app-kicker">
@@ -669,7 +807,11 @@ export default function PostsPage() {
                       {comments.slice(-3).map((comment) => (
                         <div
                           key={comment._id || `${comment.user?._id}-${comment.createdAt}`}
-                          className="group app-section-card rounded-2xl px-3 py-2"
+                          className={`group app-section-card rounded-2xl px-3 py-2 ${
+                            String(comment._id || "") === highlightedCommentId
+                              ? "comment-highlight-pulse"
+                              : ""
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-start gap-2">

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "../../../lib/mongoose";
-import { sanitizeUser } from "../../../lib/auth";
+import { sanitizeUser, setAuthCookie } from "../../../lib/auth";
 import { hashPassword } from "../../../lib/password";
 import { ensurePublicRoom } from "../../../lib/publicRoom";
 import Group from "../../../models/Group";
@@ -84,13 +84,16 @@ export async function POST() {
       });
     }
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "Demo login ready",
         user: sanitizeUser(recruiter),
       },
       { status: 200 }
     );
+
+    setAuthCookie(response, recruiter);
+    return response;
   } catch (error) {
     return NextResponse.json(
       { message: error.message || "Could not start demo login" },

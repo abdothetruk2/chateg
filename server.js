@@ -172,6 +172,9 @@ const io = new Server(httpServer, {
     socket.on("status:new", function (status) {
       if (status?._id) socket.broadcast.emit("status:new", status);
     });
+    socket.on("post:comment", function (data) {
+      if (data?.post?._id) socket.broadcast.emit("post:comment", data);
+    });
     socket.on("join-room", function (data) {
       const room = data?.room;
       if (!room) return;

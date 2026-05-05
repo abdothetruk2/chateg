@@ -26,21 +26,6 @@ function parseCookieUser() {
   return Array.isArray(parsedUser) ? parsedUser[0] : parsedUser;
 }
 
-function parseJwtPayload(token = "") {
-  const payload = token.split(".")[1];
-  if (!payload) return null;
-
-  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-  const json = decodeURIComponent(
-    atob(base64)
-      .split("")
-      .map((char) => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
-      .join("")
-  );
-
-  return JSON.parse(json);
-}
-
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -107,15 +92,12 @@ export default function LoginPage() {
       setIsGoogleSubmitting(true);
       setError("");
 
-      const profile = parseJwtPayload(response?.credential);
-      if (!profile?.email) {
+      if (!response?.credential) {
         throw new Error("Invalid Google response.");
       }
 
       const res = await axios.post("/api/auth/google", {
-        email: profile.email,
-        name: profile.name,
-        picture: profile.picture,
+        credential: response.credential,
       });
 
       if (!res.data?.success || !res.data?.user) {
@@ -123,7 +105,7 @@ export default function LoginPage() {
       }
 
       storeUser(res.data.user);
-      router.replace("/post");
+      router.replace(res.data?.redirectTo || "/post");
       router.refresh();
     } catch (err) {
       setError(
