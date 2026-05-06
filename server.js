@@ -186,7 +186,7 @@ const io = new Server(httpServer, {
         status: "joined",
       });
     });
- socket.on("call-user", (data) => {
+  socket.on("call-user", (data) => {
     if (data?.room) {
       socket.to(data.room).emit("incoming-call", {
         from: data.from,
@@ -194,6 +194,7 @@ const io = new Server(httpServer, {
         room: data.room,
         offer: data.offer,
         callType: data.callType || "video",
+        callId: data.callId || "",
       });
       return;
     }
@@ -206,6 +207,7 @@ const io = new Server(httpServer, {
         to: data.to,
         offer: data.offer,
         callType: data.callType || "video",
+        callId: data.callId || "",
       });
     });
   });
@@ -217,6 +219,7 @@ const io = new Server(httpServer, {
       io.to(socketId).emit("call-answered", {
         from: data.from,
         answer: data.answer,
+        callId: data.callId || "",
       });
     });
   });
@@ -246,6 +249,7 @@ const io = new Server(httpServer, {
       socket.to(data.room).emit("call-ended", {
         from: data.from,
         room: data.room,
+        callId: data.callId || "",
       });
       return;
     }
@@ -255,6 +259,7 @@ const io = new Server(httpServer, {
     receiverSocketIds.forEach((socketId) => {
       io.to(socketId).emit("call-ended", {
         from: data.from,
+        callId: data.callId || "",
       });
     });
   });

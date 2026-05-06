@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import VoiceRecorder from "./VoiceRecorder";
+import VoiceToTextRecorder from "./VoiceToTextRecorder";
+import TextToVoiceButton from "./TextToVoiceButton";
 import CallModal from "./CallModal";
 import { socket } from "../socket";
 import Cookies from "js-cookie";
@@ -593,6 +595,12 @@ export default function ChatWindow({
     setMessage((prev) => `${prev}${emoji}`);
     setShowMessageEmotions(false);
     messageInputRef.current?.focus();
+  }
+
+  function updateVoiceText(nextText) {
+    setMessage(nextText);
+    emitTyping();
+    requestAnimationFrame(() => messageInputRef.current?.focus());
   }
 
   async function enablePushNotifications() {
@@ -1451,7 +1459,14 @@ useEffect(() => {
                         </div>
 
                         {messageId && !msg.pending && !msg.failed && (
-                          <div className="relative mb-1">
+                          <div className="relative mb-1 flex items-center gap-1">
+                            {msg.message && (
+                              <TextToVoiceButton
+                                text={msg.message}
+                                className="rounded-xl p-1.5 text-slate-400 opacity-100 transition hover:bg-white/10 hover:text-white sm:opacity-0 sm:group-hover/message:opacity-100"
+                                title="Read message"
+                              />
+                            )}
                             <button
                               type="button"
                               title="React to message"
@@ -1682,6 +1697,15 @@ useEffect(() => {
                 >
                   <Smile className="h-5 w-5" />
                 </button>
+                <VoiceToTextRecorder
+                  value={message}
+                  onTextChange={updateVoiceText}
+                />
+                <TextToVoiceButton
+                  text={message}
+                  className="shrink-0 rounded-xl p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+                  title="Read draft"
+                />
 
                 <input
                   ref={messageInputRef}

@@ -6,8 +6,11 @@ import Cookies from "js-cookie";
 import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
+  Clock3,
   MoreVertical,
   Phone,
+  PhoneIncoming,
+  PhoneOutgoing,
   Plus,
   Search,
   ShieldCheck,
@@ -21,14 +24,43 @@ import {
 import Sidebar from "../components/Sidebar";
 import CallModal from "../components/CallModal";
 import UserListLoader from "../components/UserListLoader";
-import {socket }from "../socket";
+import { socket } from "../socket";
 import { playNotificationSound } from "../../lib/clientPreferences";
+
+function getCallPeerName(call, currentUsername) {
+  if (!call) return "Unknown";
+  if (call.scope === "group") return call.room || "Group room";
+  return call.caller === currentUsername ? call.receiver : call.caller;
+}
+
+function getCallDirection(call, currentUsername) {
+  if (call?.scope === "group") return "Room";
+  return call?.caller === currentUsername ? "Outgoing" : "Incoming";
+}
+
+function formatCallTime(value) {
+  if (!value) return "";
+
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return "";
+  }
+}
 
 export default function CallsPage() {
   const [selected, setSelected] = useState(null);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [callHistory, setCallHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyVersion, setHistoryVersion] = useState(0);
 
   const [callOpen, setCallOpen] = useState(false);
   const [callType, setCallType] = useState("video");
@@ -41,16 +73,41 @@ export default function CallsPage() {
     if (cookieUser) {
       try {
         const parsedUser = JSON.parse(cookieUser);
-        setCurrentUser(parsedUser);
+        const safeUser = Array.isArray(parsedUser) ? parsedUser[0] : parsedUser;
+        setCurrentUser(safeUser);
 
-        if (parsedUser?.username) {
-          socket.emit("user", parsedUser.username);
+        if (safeUser?.username) {
+          socket.emit("user", safeUser.username);
         }
       } catch (err) {
         console.error("Invalid user cookie:", err);
       }
     }
   }, []);
+
+  useEffect(() => {
+    async function getCallHistory() {
+      if (!currentUser?.username) return;
+
+      try {
+        setHistoryLoading(true);
+        const res = await fetch(
+          `/api/calls?username=${encodeURIComponent(currentUser.username)}&limit=8`,
+          { cache: "no-store" }
+        );
+        const data = await res.json();
+
+        setCallHistory(Array.isArray(data?.calls) ? data.calls : []);
+      } catch (error) {
+        console.error("Call history fetch failed:", error);
+        setCallHistory([]);
+      } finally {
+        setHistoryLoading(false);
+      }
+    }
+
+    getCallHistory();
+  }, [currentUser?.username, historyVersion]);
 
   useEffect(() => {
     async function getUsers() {
@@ -116,6 +173,7 @@ export default function CallsPage() {
   function closeCall() {
     setCallOpen(false);
     setIncomingCall(null);
+    setHistoryVersion((prev) => prev + 1);
   }
 
   return (
@@ -170,6 +228,69 @@ export default function CallsPage() {
                   Start voice or video calls with online users.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="app-surface mt-4 rounded-[1.5rem] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-200">
+                  Recent
+                </p>
+                <h3 className="text-sm font-black text-white">Call history</h3>
+              </div>
+              <Clock3 className="h-5 w-5 text-slate-400" />
+            </div>
+
+            <div className="space-y-2">
+              {historyLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((item) => (
+                    <div
+                      key={item}
+                      className="h-12 animate-pulse rounded-2xl bg-white/10"
+                    />
+                  ))}
+                </div>
+              ) : callHistory.length === 0 ? (
+                <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-slate-400">
+                  No recent calls yet.
+                </p>
+              ) : (
+                callHistory.slice(0, 4).map((call) => {
+                  const direction = getCallDirection(call, currentUser?.username);
+                  const DirectionIcon =
+                    direction === "Incoming" ? PhoneIncoming : PhoneOutgoing;
+
+                  return (
+                    <div
+                      key={call._id}
+                      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5"
+                    >
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          direction === "Incoming"
+                            ? "bg-emerald-400/10 text-emerald-200"
+                            : "bg-cyan-300/10 text-cyan-100"
+                        }`}
+                      >
+                        <DirectionIcon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-white">
+                          {getCallPeerName(call, currentUser?.username)}
+                        </p>
+                        <p className="truncate text-xs text-slate-400">
+                          {direction} {call.callType || "video"} - {call.status}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-xs text-slate-500">
+                        {formatCallTime(call.createdAt)}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

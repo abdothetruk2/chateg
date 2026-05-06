@@ -21,6 +21,7 @@ export default function CallModal({
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const startCallTimeoutRef = useRef(null);
+  const callRecordIdRef = useRef("");
 
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(callType === "video");
@@ -40,6 +41,47 @@ export default function CallModal({
     incomingCall && status === "Ready"
       ? `${incomingCall.from} is calling...`
       : status;
+
+  async function createCallRecord() {
+    if (callRecordIdRef.current) return callRecordIdRef.current;
+
+    const response = await fetch("/api/calls", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        caller: myName,
+        receiver: roomName ? "" : friendName,
+        room: roomName || "",
+        callType: activeCallType,
+        status: "ringing",
+      }),
+    });
+
+    if (!response.ok) return "";
+
+    const data = await response.json();
+    callRecordIdRef.current = data?.call?._id || "";
+    return callRecordIdRef.current;
+  }
+
+  async function updateCallRecord(nextStatus) {
+    const callId = callRecordIdRef.current || incomingCall?.callId || "";
+    if (!callId) return;
+
+    try {
+      await fetch(`/api/calls/${callId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+    } catch (error) {
+      console.error("Call history update failed:", error);
+    }
+  }
 
   async function getMedia(type = "video") {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -96,6 +138,7 @@ export default function CallModal({
 
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
+    const callId = await createCallRecord();
 
     socket.emit("call-user", {
       from: myName,
@@ -103,12 +146,14 @@ export default function CallModal({
       room: roomName || undefined,
       offer,
       callType: activeCallType,
+      callId,
     });
   }
 
   async function acceptCall() {
     if (!socket || !incomingCall) return;
 
+    callRecordIdRef.current = incomingCall.callId || "";
     setStatus("Connected");
     setCamOn((incomingCall.callType || "video") === "video");
 
@@ -130,14 +175,18 @@ export default function CallModal({
       from: myName,
       to: incomingCall.from,
       answer,
+      callId: callRecordIdRef.current,
     });
+    updateCallRecord("accepted");
   }
 
   function endCall() {
+    updateCallRecord("ended");
     socket?.emit("end-call", {
       from: myName,
       to: signalingTarget,
       room: roomName || incomingCall?.room || undefined,
+      callId: callRecordIdRef.current || incomingCall?.callId || "",
     });
 
     cleanup();
@@ -182,6 +231,8 @@ export default function CallModal({
         new RTCSessionDescription(data.answer)
       );
 
+      if (data?.callId) callRecordIdRef.current = data.callId;
+      updateCallRecord("accepted");
       setStatus("Connected");
     };
 
@@ -194,6 +245,7 @@ export default function CallModal({
     };
 
     const handleEnded = () => {
+      updateCallRecord("ended");
       cleanup();
       onClose?.();
     };
@@ -212,6 +264,8 @@ export default function CallModal({
 
   useEffect(() => {
     if (!open) return;
+
+    callRecordIdRef.current = incomingCall?.callId || "";
 
     if (incomingCall) {
       return;
