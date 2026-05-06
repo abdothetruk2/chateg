@@ -64,6 +64,25 @@ export async function POST(req) {
       );
     }
 
+    if (group.isPublic) {
+      const updatedGroup = await Group.findOneAndUpdate(
+        groupQuery,
+        {
+          $addToSet: { members: userId },
+          $pull: { approve: userId },
+        },
+        { returnDocument: "after" }
+      )
+        .populate("members", "username email avatar")
+        .populate("approve", "username email avatar")
+        .populate("admin", "username email avatar");
+
+      return NextResponse.json(
+        { message: "Joined public community", group: updatedGroup },
+        { status: 200 }
+      );
+    }
+
     const isPending = group.approve?.some((id) => id.toString() === userId);
 
     if (isPending) {

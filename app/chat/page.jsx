@@ -20,10 +20,13 @@ import Sidebar from "../components/Sidebar";
 import UserListLoader from "../components/UserListLoader";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { playNotificationSound } from "../../lib/clientPreferences";
+import {
+  playNotificationSound,
+  showBrowserNotification,
+} from "../../lib/clientPreferences";
 import { setGroups } from "../../features/groups/groupSlice";
 import { addStatus, setStatuses } from "../../features/status/statusSlice";
-const filters = ["All", "Unread", "Groups", "Channels"];
+const filters = ["All", "Unread", "Public", "Groups", "Channels"];
 
 let socketPromise;
 
@@ -543,6 +546,14 @@ export default function Home() {
 
           if (message.sender !== currentUser.username) {
             playNotificationSound("message");
+            showBrowserNotification({
+              title: `${message.sender || "Someone"} sent a message`,
+              body:
+                message.message ||
+                (message.media ? "Sent a media message." : "Open Egchat to view it."),
+              icon: message.avatar || "/avatar.jpg",
+              tag: message._id || message.clientId || `egchat-${Date.now()}`,
+            });
           }
 
           if (isMessageForCurrentChat(message, selectedUser)) {
@@ -702,6 +713,7 @@ export default function Home() {
     }
 
     if (!matchesSearch) return false;
+    if (activeFilter === "Public") return Boolean(user?.isPublic);
     if (activeFilter === "Groups") return user?.type === "group";
     if (activeFilter === "Unread") return getUnreadCount(user) > 0;
     if (activeFilter === "Channels") return user?.type === "channel";
@@ -710,6 +722,7 @@ export default function Home() {
   });
   const unreadThreads = filteredUsers.filter((user) => getUnreadCount(user) > 0).length;
   const groupCount = users.filter((user) => user?.type === "group").length;
+  const publicCount = users.filter((user) => user?.isPublic).length;
   const storyCount = groupedStatus.length;
 
   if (!authReady || !isAuthenticated) {
@@ -741,7 +754,7 @@ export default function Home() {
                 Messages
               </h2>
               <p className="mt-1 hidden text-sm text-slate-400 sm:block">
-                Direct chats, groups, and live status activity.
+                Direct chats, public communities, groups, and live status activity.
               </p>
             </div>
 
@@ -760,10 +773,11 @@ export default function Home() {
             />
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-4">
             {[
               ["Chats", filteredUsers.length],
               ["Unread", unreadThreads],
+              ["Public", publicCount],
               ["Groups", groupCount || storyCount],
             ].map(([label, value]) => (
               <div key={label} className="app-stat-card rounded-2xl px-2.5 py-2.5 sm:px-3 sm:py-3">

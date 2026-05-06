@@ -7,10 +7,15 @@ import { socket } from "../socket";
 import Cookies from "js-cookie";
 import Image from "next/image";
 import axios from "axios";
-import { playNotificationSound } from "../../lib/clientPreferences";
+import {
+  getBrowserNotificationPermission,
+  playNotificationSound,
+  requestBrowserNotifications,
+} from "../../lib/clientPreferences";
 import { allEmotionEmojis } from "../../lib/emotions";
 import {
   ArrowLeft,
+  BellRing,
   Video,
   Phone,
   Search,
@@ -143,6 +148,17 @@ function getReactionSummary(reactions = []) {
   }));
 }
 
+function getUserReaction(reactions = [], userId = "") {
+  if (!userId) return "";
+
+  return (
+    reactions.find((reaction) => getEntityId(reaction?.user) === String(userId))
+      ?.emoji || ""
+  );
+}
+
+const quickReactionEmojis = ["😀", "😂", "😍", "😮", "😢", "👍", "❤️", "🔥"];
+
 function markMessagesReadInList(list = [], data = {}) {
   if (!data.sender || !data.reader) return list;
 
@@ -212,6 +228,10 @@ export default function ChatWindow({
   const [friendshipOverride, setFriendshipOverride] = useState("");
   const [friendshipMessage, setFriendshipMessage] = useState("");
   const [showMessageEmotions, setShowMessageEmotions] = useState(false);
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
+  const [messageSearch, setMessageSearch] = useState("");
+  const [reactionMenuMessageId, setReactionMenuMessageId] = useState("");
+  const [notificationPermission, setNotificationPermission] = useState("default");
     
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -230,6 +250,10 @@ export default function ChatWindow({
       console.error("Invalid user cookie:", error);
       return null;
     }
+  }, []);
+
+  useEffect(() => {
+    setNotificationPermission(getBrowserNotificationPermission());
   }, []);
 
   const activeGroup =
@@ -362,6 +386,26 @@ export default function ChatWindow({
     ["image", "video"].includes(item.type)
   );
   const fileItems = sharedMedia.filter((item) => item.type === "file");
+  const normalizedMessageSearch = messageSearch.trim().toLowerCase();
+  const visibleMessages = useMemo(() => {
+    if (!normalizedMessageSearch) return messages;
+
+    return messages.filter((msg) => {
+      const searchableText = [
+        msg.message,
+        msg.sender,
+        msg.receiver,
+        msg.recname,
+        msg.media?.split("/").pop(),
+        msg.storyReply?.caption,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedMessageSearch);
+    });
+  }, [messages, normalizedMessageSearch]);
 
   function clearMedia() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -550,6 +594,37 @@ export default function ChatWindow({
     setShowMessageEmotions(false);
     messageInputRef.current?.focus();
   }
+
+  async function enablePushNotifications() {
+    const permission = await requestBrowserNotifications();
+    setNotificationPermission(permission);
+  }
+
+  async function reactToMessage(targetMessage, emoji) {
+    const messageId = getMessageDbId(targetMessage);
+    if (!messageId || !currentUser?._id) return;
+
+    try {
+      const currentReaction = getUserReaction(
+        targetMessage.reactions || [],
+        currentUser._id
+      );
+      const nextEmoji = currentReaction === emoji ? "" : emoji;
+      const res = await axios.patch(`/api/message/${messageId}`, {
+        action: "react",
+        userId: currentUser._id,
+        emoji: nextEmoji,
+      });
+      const updatedMessage = res.data?.message || res.data;
+
+      upsertMessage(updatedMessage, { syncParent: true });
+      socket.emit("message-reaction", updatedMessage);
+      setReactionMenuMessageId("");
+    } catch (error) {
+      console.error("Message reaction failed:", error);
+    }
+  }
+
   const upsertParentMessage = useCallback(
     (incomingMessage) => {
       if (
@@ -708,6 +783,9 @@ export default function ChatWindow({
     setFriendshipOverride("");
     setFriendshipMessage("");
     setShowPinnedMessage(true);
+    setReactionMenuMessageId("");
+    setMessageSearch("");
+    setShowMessageSearch(false);
   }, [selectedUser?._id]);
 
 useEffect(() => {
@@ -1078,8 +1156,36 @@ useEffect(() => {
               >
                 <Phone className="h-5 w-5" />
               </button>
-              <button className="app-icon-button hidden rounded-2xl p-2 sm:flex">
+              <button
+                className={`app-icon-button hidden rounded-2xl p-2 sm:flex ${
+                  showMessageSearch ? "border-cyan-300/30 bg-cyan-300/15 text-cyan-100" : ""
+                }`}
+                type="button"
+                title="Search messages"
+                onClick={() => {
+                  setShowMessageSearch((prev) => !prev);
+                  setReactionMenuMessageId("");
+                }}
+              >
                 <Search className="h-5 w-5" />
+              </button>
+              <button
+                className={`app-icon-button hidden rounded-2xl p-2 sm:flex ${
+                  notificationPermission === "granted"
+                    ? "border-emerald-300/30 bg-emerald-300/15 text-emerald-100"
+                    : ""
+                }`}
+                type="button"
+                title={
+                  notificationPermission === "granted"
+                    ? "Push notifications enabled"
+                    : notificationPermission === "denied"
+                    ? "Push notifications blocked by browser"
+                    : "Enable push notifications"
+                }
+                onClick={enablePushNotifications}
+              >
+                <BellRing className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setShowContactInfo((prev) => !prev)}
@@ -1090,6 +1196,35 @@ useEffect(() => {
               </button>
             </div>
           </header>
+
+          {showMessageSearch && (
+            <div className="app-section-card relative z-10 mx-2 mt-2 flex items-center gap-2 rounded-[1.15rem] px-3 py-2.5 sm:mx-3 sm:mt-3 sm:rounded-[1.25rem] sm:px-4 md:mx-4">
+              <Search className="h-4 w-4 shrink-0 text-cyan-200" />
+              <input
+                autoFocus
+                value={messageSearch}
+                onChange={(event) => setMessageSearch(event.target.value)}
+                placeholder="Search messages..."
+                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-400"
+              />
+              <span className="shrink-0 rounded-lg bg-white/10 px-2 py-1 text-xs font-bold text-slate-300">
+                {normalizedMessageSearch
+                  ? `${visibleMessages.length}/${messages.length}`
+                  : messages.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setMessageSearch("");
+                  setShowMessageSearch(false);
+                }}
+                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close message search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
 
           {showPinnedMessage && (
             <div className="app-section-card relative z-10 mx-2 mt-2 flex items-start justify-between gap-2 rounded-[1.15rem] px-3 py-2.5 sm:mx-3 sm:mt-3 sm:gap-3 sm:rounded-[1.25rem] sm:px-4 sm:py-3 md:mx-4 md:px-5">
@@ -1147,7 +1282,19 @@ useEffect(() => {
                 </div>
               )}
 
-              {messages.map((msg, index) => {
+              {messages.length > 0 && visibleMessages.length === 0 && (
+                <div className="grid min-h-[36vh] place-items-center py-8">
+                  <div className="app-premium-card max-w-sm rounded-[1.5rem] p-5 text-center">
+                    <Search className="mx-auto h-7 w-7 text-cyan-200" />
+                    <h3 className="mt-3 text-lg font-black">No message matches</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      Try another word, sender name, or attached file name.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {visibleMessages.map((msg, index) => {
                 const isMe =
                   (msg.sender || msg.username) === currentUser?.username;
                 const mediaType = getFileType(msg.mediaType || msg.media);
@@ -1157,6 +1304,11 @@ useEffect(() => {
                 );
                 const messageId = getMessageDbId(msg);
                 const reactionSummary = getReactionSummary(msg.reactions || []);
+                const myReaction = getUserReaction(
+                  msg.reactions || [],
+                  currentUserId
+                );
+                const isReactionMenuOpen = reactionMenuMessageId === messageId;
                 const showReadReceipt = isMe && msg.type !== "group";
 
                 return (
@@ -1297,6 +1449,59 @@ useEffect(() => {
                           </p>
                         )}
                         </div>
+
+                        {messageId && !msg.pending && !msg.failed && (
+                          <div className="relative mb-1">
+                            <button
+                              type="button"
+                              title="React to message"
+                              onClick={() =>
+                                setReactionMenuMessageId((prev) =>
+                                  prev === messageId ? "" : messageId
+                                )
+                              }
+                              className={`rounded-xl p-1.5 text-slate-400 opacity-100 transition hover:bg-white/10 hover:text-white sm:opacity-0 sm:group-hover/message:opacity-100 ${
+                                myReaction
+                                  ? "bg-cyan-300/15 text-cyan-100 sm:opacity-100"
+                                  : ""
+                              }`}
+                            >
+                              <Smile className="h-4 w-4" />
+                            </button>
+
+                            {isReactionMenuOpen && (
+                              <div
+                                className={`absolute bottom-full z-30 mb-2 flex items-center gap-1 rounded-2xl border border-white/10 bg-slate-950/95 p-1.5 shadow-2xl shadow-black/40 ${
+                                  isMe ? "right-0" : "left-0"
+                                }`}
+                              >
+                                {quickReactionEmojis.map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() => reactToMessage(msg, emoji)}
+                                    className={`rounded-xl px-2 py-1.5 text-base transition hover:bg-white/10 ${
+                                      myReaction === emoji ? "bg-cyan-300/20" : ""
+                                    }`}
+                                    title={`React ${emoji}`}
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                                {myReaction && (
+                                  <button
+                                    type="button"
+                                    onClick={() => reactToMessage(msg, "")}
+                                    className="rounded-xl p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                                    title="Remove reaction"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {reactionSummary.length > 0 && (

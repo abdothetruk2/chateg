@@ -1,5 +1,6 @@
 import connectDB from "../../../lib/mongoose";
 import Group from "../../../models/Group";
+import User from "../../../models/User";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
@@ -7,6 +8,7 @@ export async function POST(req) {
     const body = await req.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const userId = typeof body.user_id === "string" ? body.user_id : "";
+    const isPublic = Boolean(body.isPublic);
 
     if (!name || !userId) {
       return NextResponse.json(
@@ -17,10 +19,19 @@ export async function POST(req) {
 
     await connectDB();
 
+    const members = isPublic ? await User.distinct("_id") : [userId];
+    if (!members.some((memberId) => String(memberId) === String(userId))) {
+      members.push(userId);
+    }
+
     const group = await Group.create({
       name,
       admin: userId,
-      members: [userId],
+      members,
+      isPublic,
+      description: isPublic
+        ? "Public community open to every Egchat member."
+        : "",
     });
     const populatedGroup = await Group.findById(group._id)
       .populate("members", "username email avatar")

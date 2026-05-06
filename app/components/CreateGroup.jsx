@@ -3,7 +3,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 import { AnimatePresence, motion } from "framer-motion";
-import { CircleXIcon, Users } from "lucide-react";
+import { CircleXIcon, Globe2, Users } from "lucide-react";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { addGroup } from "../../features/groups/groupSlice";
@@ -25,7 +25,7 @@ function getCurrentUser() {
 export default function CreateGroup({ open, close }) {
   const dispatch = useDispatch();
   const reduxUser = useSelector((state) => state.user.user);
-  const [group, setGroup] = useState({ name: "" });
+  const [group, setGroup] = useState({ name: "", isPublic: false });
   const [error, setError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -52,6 +52,7 @@ export default function CreateGroup({ open, close }) {
       const res = await axios.post("/api/creategroup", {
         name: groupName,
         user_id: user._id,
+        isPublic: group.isPublic,
       });
       const createdGroup = res.data?.group;
 
@@ -61,10 +62,14 @@ export default function CreateGroup({ open, close }) {
         socket.emit("group:new", createdGroup);
       }
 
-      setGroup({ name: "" });
+      setGroup({ name: "", isPublic: false });
       close?.();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create group.");
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Failed to create group."
+      );
     } finally {
       setIsCreating(false);
     }
@@ -97,7 +102,9 @@ export default function CreateGroup({ open, close }) {
                 </div>
                 <div>
                   <h1 className="text-lg font-bold">Create Group</h1>
-                  <p className="text-xs text-white/40">Add members later.</p>
+                  <p className="text-xs text-white/40">
+                    Add members later or open it as a community.
+                  </p>
                 </div>
               </div>
 
@@ -124,6 +131,33 @@ export default function CreateGroup({ open, close }) {
                 type="text"
                 placeholder="Enter group name"
               />
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-3 transition hover:border-cyan-300/25 hover:bg-cyan-300/10">
+                <input
+                  type="checkbox"
+                  checked={group.isPublic}
+                  onChange={(event) =>
+                    setGroup((prev) => ({
+                      ...prev,
+                      isPublic: event.target.checked,
+                    }))
+                  }
+                  className="mt-1 h-4 w-4 accent-cyan-300"
+                />
+                <span className="flex min-w-0 gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-300/15 text-cyan-100">
+                    <Globe2 className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-white">
+                      Public community
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-5 text-white/45">
+                      Anyone can join and chat without admin approval.
+                    </span>
+                  </span>
+                </span>
+              </label>
 
               {error && (
                 <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-200">
