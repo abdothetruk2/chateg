@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import {
   CircleAlert,
@@ -35,18 +36,55 @@ const items = [
   { name: "Settings", icon: Settings, href: "/settings" },
 ];
 
+function getCookieUser() {
+  try {
+    const cookieUser = Cookies.get("user");
+    if (!cookieUser) return null;
+
+    const parsedUser = JSON.parse(cookieUser);
+    return Array.isArray(parsedUser) ? parsedUser[0] : parsedUser;
+  } catch {
+    return null;
+  }
+}
+
+function getProfileName(user) {
+  return (
+    user?.username ||
+    user?.developerName ||
+    String(user?.email || "").split("@")[0] ||
+    "Profile"
+  );
+}
+
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
+  const reduxUser = useSelector((state) => state.user.user);
   const [pendingHref, setPendingHref] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const profileUser = reduxUser?._id ? reduxUser : currentUser;
+  const profileAvatar = profileUser?.avatar || "/avatar.jpg";
+  const profileName = getProfileName(profileUser);
 
   useEffect(() => {
-    if (!Cookies.get("user")) {
+    const cookieUser = getCookieUser();
+
+    if (!cookieUser?._id) {
       router.push("/login");
+      return;
     }
+
+    setCurrentUser(cookieUser);
   }, [router]);
+
+  useEffect(() => {
+    if (reduxUser?._id) {
+      setCurrentUser(reduxUser);
+    }
+  }, [reduxUser]);
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -155,11 +193,25 @@ export default function Sidebar() {
           Logout
         </span>
       </div>
-      <div className="mt-auto hidden w-full pb-1 text-center text-[10px] font-bold uppercase leading-4 tracking-[0.24em] text-slate-500 lg:block">
-        <span className="block text-cyan-200">Live</span>
-        <span>Chat</span>
-        <span className="block">Suite</span>
-      </div>
+      <Link
+        href="/settings"
+        className="group/profile flex h-11 min-w-[5.75rem] shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-2 text-center transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-cyan-300/10 sm:h-12 sm:min-w-[7rem] lg:mt-auto lg:h-auto lg:w-full lg:min-w-0 lg:flex-col lg:px-1.5 lg:py-2"
+        title={profileName}
+        aria-label={profileName}
+      >
+        <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-900 shadow-lg shadow-cyan-950/20 lg:h-10 lg:w-10">
+          <Image
+            src={profileAvatar}
+            alt={`${profileName} avatar`}
+            fill
+            sizes="(min-width: 1024px) 40px, 32px"
+            className="object-cover"
+          />
+        </span>
+        <span className="max-w-[4.5rem] truncate text-[10px] font-black text-cyan-100 sm:max-w-[5.75rem] lg:w-full">
+          {profileName}
+        </span>
+      </Link>
     </aside>
   );
 }
