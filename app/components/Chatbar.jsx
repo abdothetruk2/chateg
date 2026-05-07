@@ -162,6 +162,8 @@ function getUserReaction(reactions = [], userId = "") {
 
 const quickReactionEmojis = ["😀", "😂", "😍", "😮", "😢", "👍", "❤️", "🔥"];
 const phoneNumberPattern = /^\+[1-9]\d{7,14}$/;
+const enableLocationSharing =
+  process.env.NEXT_PUBLIC_ENABLE_LOCATION_SHARING === "true";
 
 function createClientId(userId = "") {
   return `${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -1611,7 +1613,7 @@ useEffect(() => {
               </button>
               <button
                 className={`app-icon-button flex h-10 w-10 rounded-2xl p-0 sm:h-auto sm:w-auto sm:p-2 ${
-                  showPhoneTools || locationSharing
+                  showPhoneTools || (enableLocationSharing && locationSharing)
                     ? "border-emerald-300/30 bg-emerald-300/15 text-emerald-100"
                     : ""
                 }`}
@@ -1730,42 +1732,47 @@ useEffect(() => {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-black text-white">
-                    <MapPin className="h-4 w-4 text-emerald-200" />
-                    Consent location
-                  </div>
-                  <p className="text-xs leading-5 text-slate-400">
-                    Twilio lookup does not provide GPS. Live location uses this
-                    browser only after permission and expires after 1 hour.
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={startLiveLocation}
-                      disabled={Boolean(twilioLoading) || locationSharing}
-                      className="flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {twilioLoading === "location" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <MapPin className="h-4 w-4" />
-                      )}
-                      Share Location
-                    </button>
-                    <button
-                      type="button"
-                      onClick={stopLiveLocation}
-                      disabled={Boolean(twilioLoading) || !locationSharing}
-                      className="flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-red-300/20 bg-red-500/10 px-3 text-sm font-black text-red-100 transition hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {twilioLoading === "stop-location" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <X className="h-4 w-4" />
-                      )}
-                      Stop Location
-                    </button>
-                  </div>
+                  {enableLocationSharing && (
+                    <>
+                      <div className="flex items-center gap-2 text-sm font-black text-white">
+                        <MapPin className="h-4 w-4 text-emerald-200" />
+                        Consent location
+                      </div>
+                      <p className="text-xs leading-5 text-slate-400">
+                        Twilio lookup does not provide GPS. Live location uses
+                        this browser only after permission and expires after 1
+                        hour.
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={startLiveLocation}
+                          disabled={Boolean(twilioLoading) || locationSharing}
+                          className="flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {twilioLoading === "location" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <MapPin className="h-4 w-4" />
+                          )}
+                          Share Location
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopLiveLocation}
+                          disabled={Boolean(twilioLoading) || !locationSharing}
+                          className="flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-red-300/20 bg-red-500/10 px-3 text-sm font-black text-red-100 transition hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {twilioLoading === "stop-location" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <X className="h-4 w-4" />
+                          )}
+                          Stop Location
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                   {(lookupResult || twilioStatus || twilioError) && (
                     <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-300">
@@ -1811,7 +1818,7 @@ useEffect(() => {
                     </div>
                   )}
 
-                  {(locationStatus || locationError) && (
+                  {enableLocationSharing && (locationStatus || locationError) && (
                     <p
                       className={`rounded-2xl border px-3 py-2 text-xs font-bold ${
                         locationError

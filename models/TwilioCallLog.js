@@ -23,6 +23,11 @@ const TwilioCallLogSchema = new mongoose.Schema(
       default: "You have a new Nexchat notification",
       trim: true,
     },
+    voiceUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     twilioSid: {
       type: String,
       default: "",

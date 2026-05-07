@@ -48,6 +48,7 @@ TWILIO_API_SECRET=...
 TWILIO_TWIML_APP_SID=...
 TWILIO_FROM_NUMBER=+15551234567
 NEXT_PUBLIC_APP_URL=https://your-domain.example
+NEXT_PUBLIC_ENABLE_LOCATION_SHARING=false
 ```
 
 Create a Twilio API Key/Secret and a TwiML App in the Twilio Console. Set the
@@ -59,8 +60,9 @@ Chat phone tools use:
 - `POST /api/twilio/sms` for authenticated SMS sends.
 - `POST /api/twilio/call` for authenticated Twilio voice notifications.
 - `POST /api/twilio/lookup` for country, carrier, line type, and validity.
-- `POST /api/location/live` and `DELETE /api/location/live` for consent-based
-  browser GPS sharing. Twilio lookup cannot provide live GPS from a phone number.
+- Optional location sharing is disabled by default. Set
+  `NEXT_PUBLIC_ENABLE_LOCATION_SHARING=true` to show the Share Location controls.
+  Twilio lookup cannot provide live GPS from a phone number.
 
 ## Production
 

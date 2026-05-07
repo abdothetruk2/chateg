@@ -5,7 +5,7 @@ import connectDB from "../../../../lib/mongoose";
 import TwilioCallLog from "../../../../models/TwilioCallLog";
 
 const phoneNumberPattern = /^\+[1-9]\d{7,14}$/;
-const defaultCallMessage = "You have a new Nexchat notification";
+const defaultVoiceUrl = "http://demo.twilio.com/docs/voice.xml";
 
 function cleanText(value = "") {
   return typeof value === "string" ? value.trim() : "";
@@ -29,7 +29,6 @@ export async function POST(req) {
 
   const body = await req.json().catch(() => ({}));
   const to = cleanText(body.phoneNumber || body.to);
-  const message = cleanText(body.message).slice(0, 500) || defaultCallMessage;
 
   if (!phoneNumberPattern.test(to)) {
     return NextResponse.json(
@@ -41,6 +40,7 @@ export async function POST(req) {
   const accountSid = cleanText(process.env.TWILIO_ACCOUNT_SID);
   const authToken = cleanText(process.env.TWILIO_AUTH_TOKEN);
   const from = getTwilioPhoneNumber();
+  const voiceUrl = cleanText(process.env.TWILIO_VOICE_URL) || defaultVoiceUrl;
 
   if (!accountSid || !authToken || !from) {
     return NextResponse.json(
@@ -52,21 +52,18 @@ export async function POST(req) {
   await connectDB();
 
   try {
-    const voiceResponse = new twilio.twiml.VoiceResponse();
-    voiceResponse.say({ voice: "alice" }, message);
-
     const client = twilio(accountSid, authToken);
     const call = await client.calls.create({
-      to,
       from,
-      twiml: voiceResponse.toString(),
+      to,
+      url: voiceUrl,
     });
 
     const log = await TwilioCallLog.create({
       ownerId: user._id,
       ownerUsername: user.username || "",
       to,
-      message,
+      voiceUrl,
       twilioSid: call.sid || "",
       status: call.status || "queued",
     });
@@ -85,7 +82,7 @@ export async function POST(req) {
       ownerId: user._id,
       ownerUsername: user.username || "",
       to,
-      message,
+      voiceUrl,
       status: "failed",
       errorMessage: error.message || "Failed to start phone call",
     });
