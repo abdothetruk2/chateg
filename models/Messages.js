@@ -31,6 +31,14 @@ const MessageSchema = new mongoose.Schema(
       caption: { type: String, default: "" },
       owner: { type: String, default: "" },
     },
+    location: {
+      latitude: { type: Number },
+      longitude: { type: Number },
+      accuracy: { type: Number },
+      isLive: { type: Boolean, default: false },
+      shareId: { type: String, default: "" },
+      expiresAt: { type: Date },
+    },
   },
   { timestamps: true }
 );

@@ -33,6 +33,7 @@ import {
   Check,
   CheckCheck,
   LogOut,
+  Loader2,
   MapPin,
   Trash2,
   Users,
@@ -160,6 +161,47 @@ function getUserReaction(reactions = [], userId = "") {
 }
 
 const quickReactionEmojis = ["😀", "😂", "😍", "😮", "😢", "👍", "❤️", "🔥"];
+const phoneNumberPattern = /^\+[1-9]\d{7,14}$/;
+
+function createClientId(userId = "") {
+  return `${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getLocationMapUrls(location = {}) {
+  const latitude = Number(location.latitude);
+  const longitude = Number(location.longitude);
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return null;
+  }
+
+  const delta = 0.01;
+  const bbox = [
+    longitude - delta,
+    latitude - delta,
+    longitude + delta,
+    latitude + delta,
+  ].join(",");
+  const marker = `${latitude},${longitude}`;
+
+  return {
+    embed: `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(
+      bbox
+    )}&layer=mapnik&marker=${encodeURIComponent(marker)}`,
+    link: `https://www.openstreetmap.org/?mlat=${encodeURIComponent(
+      latitude
+    )}&mlon=${encodeURIComponent(longitude)}#map=16/${encodeURIComponent(
+      latitude
+    )}/${encodeURIComponent(longitude)}`,
+  };
+}
 
 function markMessagesReadInList(list = [], data = {}) {
   if (!data.sender || !data.reader) return list;
@@ -234,6 +276,17 @@ export default function ChatWindow({
   const [messageSearch, setMessageSearch] = useState("");
   const [reactionMenuMessageId, setReactionMenuMessageId] = useState("");
   const [notificationPermission, setNotificationPermission] = useState("default");
+  const [showPhoneTools, setShowPhoneTools] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [smsText, setSmsText] = useState("You have a new Nexchat notification");
+  const [twilioLoading, setTwilioLoading] = useState("");
+  const [twilioStatus, setTwilioStatus] = useState("");
+  const [twilioError, setTwilioError] = useState("");
+  const [lookupResult, setLookupResult] = useState(null);
+  const [locationSharing, setLocationSharing] = useState(false);
+  const [locationStatus, setLocationStatus] = useState("");
+  const [locationError, setLocationError] = useState("");
+  const [activeLocation, setActiveLocation] = useState(null);
     
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -241,6 +294,8 @@ export default function ChatWindow({
   const groupAvatarInputRef = useRef(null);
   const typingTimeoutRef = useRef({});
   const lastTypingTimeRef = useRef(0);
+  const liveLocationIntervalRef = useRef(null);
+  const activeLocationRef = useRef(null);
 
   const currentUser = useMemo(() => {
     try {
@@ -256,6 +311,16 @@ export default function ChatWindow({
 
   useEffect(() => {
     setNotificationPermission(getBrowserNotificationPermission());
+  }, []);
+
+  useEffect(() => {
+    activeLocationRef.current = activeLocation;
+  }, [activeLocation]);
+
+  useEffect(() => {
+    return () => {
+      clearLiveLocationInterval();
+    };
   }, []);
 
   const activeGroup =
@@ -676,6 +741,369 @@ export default function ChatWindow({
     setCallPeer(null);
   }
 
+  function getConversationTarget() {
+    const isGroup = selectedUser?.type === "group";
+    const receiver = isGroup ? selectedUser?.name : selectedUser?.username;
+
+    return {
+      isGroup,
+      receiver: receiver || "",
+      recname: receiver || "",
+      chat: isGroup ? receiver || "" : "",
+      type: isGroup ? "group" : "user",
+    };
+  }
+
+  async function ensureCanSendToConversation() {
+    if (!currentUser || !selectedUser) return false;
+
+    if (selectedUser?.type === "group" && !isGroupMember) {
+      if (!hasPendingJoinRequest) {
+        await joinGroup();
+      }
+
+      return false;
+    }
+
+    return true;
+  }
+
+  const updateLocationMessage = useCallback((location) => {
+    if (!location?._id) return;
+
+    const shareId = String(location._id);
+    const nextLocation = {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      accuracy: location.accuracy,
+      isLive: Boolean(location.isLive),
+      shareId,
+      expiresAt: location.expiresAt,
+    };
+
+    const applyPatch = (list = []) =>
+      list.map((item) =>
+        item.location?.shareId === shareId
+          ? {
+              ...item,
+              location: {
+                ...item.location,
+                ...nextLocation,
+              },
+              message: nextLocation.isLive
+                ? "Shared live location"
+                : "Live location stopped",
+            }
+          : item
+      );
+
+    setMessages((prev) => applyPatch(prev));
+
+    if (typeof setParentMessages === "function") {
+      setParentMessages((prev) => applyPatch(prev));
+    }
+  }, [setParentMessages]);
+
+  function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Browser location is not supported."));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 12000,
+      });
+    });
+  }
+
+  async function saveLiveLocation(position) {
+    const target = getConversationTarget();
+
+    const res = await axios.post("/api/location/live", {
+      receiver: target.receiver,
+      recname: target.recname,
+      chat: target.chat,
+      type: target.type,
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+    });
+
+    return res.data?.location;
+  }
+
+  function emitLiveLocation(eventName, location) {
+    if (!location || !currentUser?.username) return;
+
+    socket.emit(eventName, {
+      sender: currentUser.username,
+      receiver: location.receiver,
+      recname: location.recname || location.receiver,
+      chat: location.chat || "",
+      type: location.type || "user",
+      location,
+    });
+  }
+
+  function clearLiveLocationInterval() {
+    if (liveLocationIntervalRef.current) {
+      window.clearInterval(liveLocationIntervalRef.current);
+      liveLocationIntervalRef.current = null;
+    }
+  }
+
+  async function updateLiveLocation() {
+    const currentLocation = activeLocationRef.current;
+
+    if (
+      currentLocation?.expiresAt &&
+      new Date(currentLocation.expiresAt).getTime() <= Date.now()
+    ) {
+      clearLiveLocationInterval();
+      setLocationSharing(false);
+      setLocationStatus("Live location expired.");
+      updateLocationMessage({ ...currentLocation, isLive: false });
+      return;
+    }
+
+    try {
+      const position = await getCurrentPosition();
+      const location = await saveLiveLocation(position);
+
+      if (!location) return;
+
+      activeLocationRef.current = location;
+      setActiveLocation(location);
+      setLocationSharing(Boolean(location.isLive));
+      updateLocationMessage(location);
+      emitLiveLocation("live-location:update", location);
+    } catch (error) {
+      setLocationError(error.message || "Failed to update live location.");
+    }
+  }
+
+  async function persistAndEmitMessage(newMessage) {
+    upsertMessage(newMessage, { syncParent: true });
+
+    if (newMessage.type === "group") {
+      socket.emit("group", {
+        room: newMessage.chat || newMessage.receiver,
+        user: currentUser.username,
+      });
+    }
+
+    try {
+      const res = await axios.post("/api/message", newMessage);
+      const savedMessage = res.data?.message || res.data;
+      const finalMessage = {
+        ...newMessage,
+        ...savedMessage,
+        clientId: newMessage.clientId,
+        pending: false,
+        failed: false,
+      };
+
+      upsertMessage(finalMessage, { syncParent: true });
+      socket.emit("message", finalMessage);
+      return finalMessage;
+    } catch (error) {
+      const failedMessage = {
+        ...newMessage,
+        pending: false,
+        failed: true,
+      };
+
+      upsertMessage(failedMessage, { syncParent: true });
+      throw error;
+    }
+  }
+
+  async function startLiveLocation() {
+    setLocationError("");
+    setLocationStatus("");
+
+    if (!(await ensureCanSendToConversation())) return;
+
+    try {
+      setTwilioLoading("location");
+      const position = await getCurrentPosition();
+      const location = await saveLiveLocation(position);
+
+      if (!location) {
+        throw new Error("Location sharing did not start.");
+      }
+
+      const target = getConversationTarget();
+      const newMessage = {
+        clientId: createClientId(currentUser._id),
+        sender: currentUser.username,
+        avatar: currentUser.avatar || "/avatar.jpg",
+        receiver: target.receiver,
+        recname: target.recname,
+        message: "Shared live location",
+        media: "",
+        mediaType: "",
+        unread: 1,
+        read: false,
+        reactions: [],
+        type: target.type,
+        chat: target.chat,
+        location: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy,
+          isLive: true,
+          shareId: String(location._id),
+          expiresAt: location.expiresAt,
+        },
+        createdAt: new Date().toISOString(),
+        pending: true,
+      };
+
+      activeLocationRef.current = location;
+      setActiveLocation(location);
+      setLocationSharing(true);
+      setLocationStatus("Live location sharing started for 1 hour.");
+      emitLiveLocation("live-location:update", location);
+      await persistAndEmitMessage(newMessage);
+      clearLiveLocationInterval();
+      liveLocationIntervalRef.current = window.setInterval(
+        updateLiveLocation,
+        10000
+      );
+    } catch (error) {
+      setLocationError(error.message || "Location permission was not granted.");
+      setLocationSharing(false);
+    } finally {
+      setTwilioLoading("");
+    }
+  }
+
+  async function stopLiveLocation() {
+    setLocationError("");
+
+    const target = getConversationTarget();
+    const currentLocation = activeLocationRef.current || activeLocation;
+
+    try {
+      setTwilioLoading("stop-location");
+      clearLiveLocationInterval();
+
+      if (currentLocation?._id || target.receiver) {
+        const res = await axios.delete("/api/location/live", {
+          data: {
+            locationId: currentLocation?._id || "",
+            receiver: target.receiver,
+            type: target.type,
+          },
+        });
+        const stoppedLocation = res.data?.location || {
+          ...currentLocation,
+          isLive: false,
+        };
+
+        activeLocationRef.current = null;
+        setActiveLocation(null);
+        setLocationSharing(false);
+        setLocationStatus("Live location stopped.");
+        updateLocationMessage(stoppedLocation);
+        emitLiveLocation("live-location:stop", stoppedLocation);
+      }
+    } catch (error) {
+      setLocationError(error.response?.data?.message || "Failed to stop location.");
+    } finally {
+      setTwilioLoading("");
+    }
+  }
+
+  function validatePhoneInput() {
+    const cleanPhone = phoneNumber.trim();
+
+    if (!phoneNumberPattern.test(cleanPhone)) {
+      setTwilioError("Use international format, like +201011396246.");
+      return "";
+    }
+
+    return cleanPhone;
+  }
+
+  async function lookupPhoneNumber() {
+    const cleanPhone = validatePhoneInput();
+    if (!cleanPhone) return;
+
+    try {
+      setTwilioLoading("lookup");
+      setTwilioError("");
+      setTwilioStatus("");
+      setLookupResult(null);
+
+      const res = await axios.post("/api/twilio/lookup", {
+        phoneNumber: cleanPhone,
+      });
+
+      setLookupResult(res.data);
+      setTwilioStatus("Phone number lookup complete.");
+    } catch (error) {
+      setTwilioError(
+        error.response?.data?.message || "Failed to look up phone number."
+      );
+    } finally {
+      setTwilioLoading("");
+    }
+  }
+
+  async function sendSmsNotification() {
+    const cleanPhone = validatePhoneInput();
+    const cleanMessage = smsText.trim();
+
+    if (!cleanPhone || !cleanMessage) {
+      if (!cleanMessage) setTwilioError("SMS message is required.");
+      return;
+    }
+
+    try {
+      setTwilioLoading("sms");
+      setTwilioError("");
+      setTwilioStatus("");
+
+      const res = await axios.post("/api/twilio/sms", {
+        phoneNumber: cleanPhone,
+        message: cleanMessage,
+      });
+
+      setTwilioStatus(`SMS ${res.data?.status || "queued"}.`);
+    } catch (error) {
+      setTwilioError(error.response?.data?.message || "Failed to send SMS.");
+    } finally {
+      setTwilioLoading("");
+    }
+  }
+
+  async function callPhoneNumber() {
+    const cleanPhone = validatePhoneInput();
+    if (!cleanPhone) return;
+
+    try {
+      setTwilioLoading("call");
+      setTwilioError("");
+      setTwilioStatus("");
+
+      const res = await axios.post("/api/twilio/call", {
+        phoneNumber: cleanPhone,
+        message: "You have a new Nexchat notification",
+      });
+
+      setTwilioStatus(`Call ${res.data?.status || "queued"}.`);
+    } catch (error) {
+      setTwilioError(error.response?.data?.message || "Failed to start call.");
+    } finally {
+      setTwilioLoading("");
+    }
+  }
+
  async function send() {
   if (!currentUser || !selectedUser) return;
   if (!message.trim() && !mediaUrl) return;
@@ -684,28 +1112,17 @@ export default function ChatWindow({
   const text = message.trim();
   const media = mediaUrl || "";
   const attachedMediaType = mediaType || selectedFile?.type || "";
+  const target = getConversationTarget();
 
-  const isGroup = selectedUser?.type === "group";
-
-  if (isGroup && !isGroupMember) {
-    if (!hasPendingJoinRequest) {
-      await joinGroup();
-    }
-
-    return;
-  }
-
-  const clientId = `${currentUser._id}-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+  if (!(await ensureCanSendToConversation())) return;
 
   const newMessage = {
-    clientId,
+    clientId: createClientId(currentUser._id),
     sender: currentUser.username,
     avatar: currentUser.avatar || "/avatar.jpg",
 
-    receiver: isGroup ? selectedUser.name : selectedUser.username,
-    recname: isGroup ? selectedUser.name : selectedUser.username,
+    receiver: target.receiver,
+    recname: target.recname,
 
     message: text,
     media,
@@ -714,8 +1131,8 @@ export default function ChatWindow({
     unread: 1,
     read: false,
     reactions: [],
-    type: isGroup ? "group" : "user",
-    chat: isGroup ? selectedUser.name : "",
+    type: target.type,
+    chat: target.chat,
 
     createdAt: new Date().toISOString(),
     pending: true,
@@ -726,43 +1143,9 @@ export default function ChatWindow({
     setMessage("");
     clearMedia();
 
-    // show message instantly
-    upsertMessage(newMessage, { syncParent: true });
-
-    if (isGroup) {
-      socket.emit("group", {
-        room: selectedUser.name,
-        user: currentUser.username,
-      });
-    }
-
-    // save in DB first
-    const res = await axios.post("/api/message", newMessage);
-
-    const savedMessage = res.data?.message || res.data;
-
-    const finalMessage = {
-      ...newMessage,
-      ...savedMessage,
-      clientId,
-      pending: false,
-    };
-
-    // replace pending message with saved message
-    upsertMessage(finalMessage, { syncParent: true });
-
-    // emit saved message with _id
-    socket.emit("message", finalMessage);
+    await persistAndEmitMessage(newMessage);
   } catch (error) {
     console.error("Send failed:", error);
-
-    const failedMessage = {
-      ...newMessage,
-      pending: false,
-      failed: true,
-    };
-
-    upsertMessage(failedMessage, { syncParent: true });
   }
 }
 
@@ -794,6 +1177,12 @@ export default function ChatWindow({
     setReactionMenuMessageId("");
     setMessageSearch("");
     setShowMessageSearch(false);
+    setShowPhoneTools(false);
+    setTwilioStatus("");
+    setTwilioError("");
+    setLookupResult(null);
+    setLocationStatus("");
+    setLocationError("");
   }, [selectedUser?._id]);
 
 useEffect(() => {
@@ -842,6 +1231,7 @@ useEffect(() => {
         message: data.message || "",
         media: data.media || "",
         mediaType: data.mediaType || "",
+        location: data.location || null,
         type: data.type || "user",
         chat: data.chat || "",
         storyReply: data.storyReply || null,
@@ -956,6 +1346,19 @@ useEffect(() => {
       upsertMessage(data, { syncParent: true });
     }
 
+    function onLiveLocationUpdate(data) {
+      if (!isMessageInChat(data, selectedUser, currentUser?.username)) return;
+      updateLocationMessage(data.location);
+    }
+
+    function onLiveLocationStop(data) {
+      if (!isMessageInChat(data, selectedUser, currentUser?.username)) return;
+      updateLocationMessage({
+        ...data.location,
+        isLive: false,
+      });
+    }
+
     socket.on("connect", onConnect);
     socket.on("message", onMessage);
     socket.on("incoming-call", onIncomingCall);
@@ -964,6 +1367,8 @@ useEffect(() => {
     socket.on("messages-read", onMessagesRead);
     socket.on("message-deleted", onMessageDeleted);
     socket.on("message-reaction", onMessageReaction);
+    socket.on("live-location:update", onLiveLocationUpdate);
+    socket.on("live-location:stop", onLiveLocationStop);
 
     if (socket.connected) {
       onConnect();
@@ -980,10 +1385,19 @@ useEffect(() => {
       socket.off("messages-read", onMessagesRead);
       socket.off("message-deleted", onMessageDeleted);
       socket.off("message-reaction", onMessageReaction);
+      socket.off("live-location:update", onLiveLocationUpdate);
+      socket.off("live-location:stop", onLiveLocationStop);
       Object.values(typingTimeoutRef.current).forEach(clearTimeout);
       typingTimeoutRef.current = {};
     };
-  }, [selectedUser, currentUser, notifyOnIncoming, setParentMessages, upsertMessage]);
+  }, [
+    selectedUser,
+    currentUser,
+    notifyOnIncoming,
+    setParentMessages,
+    upsertMessage,
+    updateLocationMessage,
+  ]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1196,6 +1610,18 @@ useEffect(() => {
                 <BellRing className="h-5 w-5" />
               </button>
               <button
+                className={`app-icon-button flex h-10 w-10 rounded-2xl p-0 sm:h-auto sm:w-auto sm:p-2 ${
+                  showPhoneTools || locationSharing
+                    ? "border-emerald-300/30 bg-emerald-300/15 text-emerald-100"
+                    : ""
+                }`}
+                type="button"
+                title="Phone and location tools"
+                onClick={() => setShowPhoneTools((prev) => !prev)}
+              >
+                <MapPin className="h-5 w-5" />
+              </button>
+              <button
                 onClick={() => setShowContactInfo((prev) => !prev)}
                 className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-0 text-cyan-200 transition hover:-translate-y-0.5 hover:bg-cyan-300/15 lg:flex lg:h-auto lg:w-auto lg:p-2"
                 type="button"
@@ -1232,6 +1658,173 @@ useEffect(() => {
                 <X className="h-4 w-4" />
               </button>
             </div>
+          )}
+
+          {showPhoneTools && (
+            <section className="app-section-card relative z-10 mx-2 mt-2 rounded-[1.15rem] px-3 py-3 sm:mx-3 sm:mt-3 sm:rounded-[1.25rem] sm:px-4 md:mx-4 md:px-5">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-black text-white">
+                    <Phone className="h-4 w-4 text-cyan-200" />
+                    Twilio phone tools
+                  </div>
+                  <input
+                    value={phoneNumber}
+                    onChange={(event) => {
+                      setPhoneNumber(event.target.value);
+                      setTwilioError("");
+                      setTwilioStatus("");
+                    }}
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="+201011396246"
+                    className="min-h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/35"
+                  />
+                  <input
+                    value={smsText}
+                    onChange={(event) => setSmsText(event.target.value)}
+                    placeholder="SMS message"
+                    className="min-h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/35"
+                  />
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={sendSmsNotification}
+                      disabled={Boolean(twilioLoading)}
+                      className="flex min-h-10 items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-3 text-sm font-black text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {twilioLoading === "sms" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      Send SMS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={callPhoneNumber}
+                      disabled={Boolean(twilioLoading)}
+                      className="flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {twilioLoading === "call" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Phone className="h-4 w-4" />
+                      )}
+                      Call User
+                    </button>
+                    <button
+                      type="button"
+                      onClick={lookupPhoneNumber}
+                      disabled={Boolean(twilioLoading)}
+                      className="flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 text-sm font-black text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {twilioLoading === "lookup" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                      Lookup Number
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-black text-white">
+                    <MapPin className="h-4 w-4 text-emerald-200" />
+                    Consent location
+                  </div>
+                  <p className="text-xs leading-5 text-slate-400">
+                    Twilio lookup does not provide GPS. Live location uses this
+                    browser only after permission and expires after 1 hour.
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={startLiveLocation}
+                      disabled={Boolean(twilioLoading) || locationSharing}
+                      className="flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {twilioLoading === "location" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MapPin className="h-4 w-4" />
+                      )}
+                      Share Location
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopLiveLocation}
+                      disabled={Boolean(twilioLoading) || !locationSharing}
+                      className="flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-red-300/20 bg-red-500/10 px-3 text-sm font-black text-red-100 transition hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {twilioLoading === "stop-location" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                      Stop Location
+                    </button>
+                  </div>
+
+                  {(lookupResult || twilioStatus || twilioError) && (
+                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-300">
+                      {twilioError ? (
+                        <p className="font-bold text-red-100">{twilioError}</p>
+                      ) : (
+                        <>
+                          {twilioStatus && (
+                            <p className="font-bold text-emerald-100">
+                              {twilioStatus}
+                            </p>
+                          )}
+                          {lookupResult && (
+                            <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                              <div>
+                                <dt className="font-black uppercase text-slate-500">
+                                  Country
+                                </dt>
+                                <dd>{lookupResult.country || "Unknown"}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-black uppercase text-slate-500">
+                                  Carrier
+                                </dt>
+                                <dd>{lookupResult.carrier || "Unknown"}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-black uppercase text-slate-500">
+                                  Line type
+                                </dt>
+                                <dd>{lookupResult.lineType || "Unknown"}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-black uppercase text-slate-500">
+                                  Valid
+                                </dt>
+                                <dd>{lookupResult.valid ? "Yes" : "No"}</dd>
+                              </div>
+                            </dl>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {(locationStatus || locationError) && (
+                    <p
+                      className={`rounded-2xl border px-3 py-2 text-xs font-bold ${
+                        locationError
+                          ? "border-red-300/20 bg-red-500/10 text-red-100"
+                          : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
+                      }`}
+                    >
+                      {locationError || locationStatus}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
           )}
 
           {showPinnedMessage && (
@@ -1318,6 +1911,9 @@ useEffect(() => {
                 );
                 const isReactionMenuOpen = reactionMenuMessageId === messageId;
                 const showReadReceipt = isMe && msg.type !== "group";
+                const locationMapUrls = msg.location
+                  ? getLocationMapUrls(msg.location)
+                  : null;
 
                 return (
                   <div
@@ -1449,6 +2045,53 @@ useEffect(() => {
                             <FileText className="h-5 w-5" />
                             <span className="break-all text-sm">Open file</span>
                           </a>
+                        )}
+
+                        {locationMapUrls && (
+                          <div className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                            <iframe
+                              title="Shared location map"
+                              src={locationMapUrls.embed}
+                              className="h-40 w-[min(72vw,320px)] border-0"
+                              loading="lazy"
+                            />
+                            <div className="space-y-2 px-3 py-3">
+                              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] opacity-80">
+                                <MapPin className="h-4 w-4" />
+                                {msg.location?.isLive
+                                  ? "Live location"
+                                  : "Location"}
+                              </div>
+                              <p className="text-xs leading-5 opacity-80">
+                                {Number(msg.location.latitude).toFixed(5)},{" "}
+                                {Number(msg.location.longitude).toFixed(5)}
+                                {msg.location.accuracy
+                                  ? ` · ~${Math.round(
+                                      msg.location.accuracy
+                                    )}m accuracy`
+                                  : ""}
+                              </p>
+                              {msg.location?.isLive && msg.location?.expiresAt && (
+                                <p className="text-xs font-semibold opacity-80">
+                                  Expires{" "}
+                                  {new Date(
+                                    msg.location.expiresAt
+                                  ).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              )}
+                              <a
+                                href={locationMapUrls.link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex rounded-xl bg-white/10 px-3 py-2 text-xs font-black transition hover:bg-white/15"
+                              >
+                                Open map
+                              </a>
+                            </div>
+                          </div>
                         )}
 
                         {msg.message && (

@@ -264,6 +264,45 @@ const io = new Server(httpServer, {
     });
   });
 
+  function emitDirectLocationEvent(eventName, data) {
+    const participants = new Set(
+      [data?.sender, data?.receiver, data?.recname].filter(Boolean)
+    );
+
+    participants.forEach((username) => {
+      const socketIds = Array.from(userSockets[username] || []);
+      socketIds.forEach((socketId) => {
+        if (socketId !== socket.id) {
+          io.to(socketId).emit(eventName, data);
+        }
+      });
+    });
+  }
+
+  socket.on("live-location:update", (data) => {
+    if (!data?.sender) return;
+
+    if (data?.type === "group") {
+      const room = data.chat || data.receiver;
+      if (room) socket.to(room).emit("live-location:update", data);
+      return;
+    }
+
+    emitDirectLocationEvent("live-location:update", data);
+  });
+
+  socket.on("live-location:stop", (data) => {
+    if (!data?.sender) return;
+
+    if (data?.type === "group") {
+      const room = data.chat || data.receiver;
+      if (room) socket.to(room).emit("live-location:stop", data);
+      return;
+    }
+
+    emitDirectLocationEvent("live-location:stop", data);
+  });
+
   socket.on("disconnect", async function () {
     // your disconnect code
   });

@@ -31,7 +31,7 @@ import Sidebar from "../components/Sidebar";
 
 const STORAGE_KEY = "egchat.todo.tasks";
 const DAY_MS = 24 * 60 * 60 * 1000;
-const INITIAL_NOW = Date.now();
+const HYDRATION_TIMESTAMP = Date.UTC(2026, 0, 1, 0, 0, 0);
 const priorityOptions = ["Low", "Medium", "High"];
 const priorityWeights = {
   High: 3,
@@ -75,96 +75,6 @@ const columns = [
   },
 ];
 
-const defaultTasks = [
-  {
-    id: "task-public-room",
-    title: "Review public chat room",
-    note: "Check that every member can read and send messages.",
-    status: "todo",
-    priority: "High",
-    dueDate: toDateInputValue(new Date(INITIAL_NOW + DAY_MS * 2)),
-    labels: ["Rooms", "QA"],
-    checklist: [
-      {
-        id: "check-room-send",
-        text: "Test member send flow",
-        done: false,
-      },
-      {
-        id: "check-room-media",
-        text: "Confirm media attachments",
-        done: false,
-      },
-    ],
-    assigneeId: "",
-    assigneeName: "",
-    assigneeAvatar: "",
-    estimateMinutes: 30,
-    elapsedSeconds: 0,
-    timerStartedAt: null,
-    completedAt: null,
-    createdAt: new Date(INITIAL_NOW).toISOString(),
-  },
-  {
-    id: "task-profile-polish",
-    title: "Polish profile flows",
-    note: "Verify avatar, cover, and account settings.",
-    status: "progress",
-    priority: "Medium",
-    dueDate: toDateInputValue(new Date(INITIAL_NOW + DAY_MS * 5)),
-    labels: ["Profile"],
-    checklist: [
-      {
-        id: "check-profile-avatar",
-        text: "Upload avatar",
-        done: true,
-      },
-      {
-        id: "check-profile-cover",
-        text: "Review cover layout",
-        done: false,
-      },
-    ],
-    assigneeId: "",
-    assigneeName: "",
-    assigneeAvatar: "",
-    estimateMinutes: 45,
-    elapsedSeconds: 0,
-    timerStartedAt: null,
-    completedAt: null,
-    createdAt: new Date(INITIAL_NOW).toISOString(),
-  },
-  {
-    id: "task-gradient",
-    title: "Apply app gradient",
-    note: "Keep the same color system across pages and panels.",
-    status: "done",
-    priority: "Low",
-    dueDate: toDateInputValue(new Date(INITIAL_NOW - DAY_MS)),
-    labels: ["Design"],
-    checklist: [
-      {
-        id: "check-gradient-pages",
-        text: "Check page backgrounds",
-        done: true,
-      },
-      {
-        id: "check-gradient-panels",
-        text: "Check panel contrast",
-        done: true,
-      },
-    ],
-    assigneeId: "",
-    assigneeName: "",
-    assigneeAvatar: "",
-    estimateMinutes: 20,
-    elapsedSeconds: 0,
-    timerStartedAt: null,
-    completedAt: new Date(INITIAL_NOW).toISOString(),
-    createdAt: new Date(INITIAL_NOW).toISOString(),
-  },
-];
-
 function toDateInputValue(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -175,6 +85,106 @@ function toDateInputValue(date = new Date()) {
 
 function getTimestamp() {
   return Date.now();
+}
+
+function createDefaultTasks(timestamp = HYDRATION_TIMESTAMP) {
+  const createdAt = new Date(timestamp).toISOString();
+
+  return [
+    {
+      id: "task-public-room",
+      title: "Review public chat room",
+      note: "Check that every member can read and send messages.",
+      status: "todo",
+      priority: "High",
+      dueDate: toDateInputValue(new Date(timestamp + DAY_MS * 2)),
+      labels: ["Rooms", "QA"],
+      checklist: [
+        {
+          id: "check-room-send",
+          text: "Test member send flow",
+          done: false,
+          createdAt,
+        },
+        {
+          id: "check-room-media",
+          text: "Confirm media attachments",
+          done: false,
+          createdAt,
+        },
+      ],
+      assigneeId: "",
+      assigneeName: "",
+      assigneeAvatar: "",
+      estimateMinutes: 30,
+      elapsedSeconds: 0,
+      timerStartedAt: null,
+      completedAt: null,
+      createdAt,
+    },
+    {
+      id: "task-profile-polish",
+      title: "Polish profile flows",
+      note: "Verify avatar, cover, and account settings.",
+      status: "progress",
+      priority: "Medium",
+      dueDate: toDateInputValue(new Date(timestamp + DAY_MS * 5)),
+      labels: ["Profile"],
+      checklist: [
+        {
+          id: "check-profile-avatar",
+          text: "Upload avatar",
+          done: true,
+          createdAt,
+        },
+        {
+          id: "check-profile-cover",
+          text: "Review cover layout",
+          done: false,
+          createdAt,
+        },
+      ],
+      assigneeId: "",
+      assigneeName: "",
+      assigneeAvatar: "",
+      estimateMinutes: 45,
+      elapsedSeconds: 0,
+      timerStartedAt: null,
+      completedAt: null,
+      createdAt,
+    },
+    {
+      id: "task-gradient",
+      title: "Apply app gradient",
+      note: "Keep the same color system across pages and panels.",
+      status: "done",
+      priority: "Low",
+      dueDate: toDateInputValue(new Date(timestamp - DAY_MS)),
+      labels: ["Design"],
+      checklist: [
+        {
+          id: "check-gradient-pages",
+          text: "Check page backgrounds",
+          done: true,
+          createdAt,
+        },
+        {
+          id: "check-gradient-panels",
+          text: "Check panel contrast",
+          done: true,
+          createdAt,
+        },
+      ],
+      assigneeId: "",
+      assigneeName: "",
+      assigneeAvatar: "",
+      estimateMinutes: 20,
+      elapsedSeconds: 0,
+      timerStartedAt: null,
+      completedAt: createdAt,
+      createdAt,
+    },
+  ];
 }
 
 function getCurrentUser() {
@@ -488,7 +498,9 @@ function getDueToneClasses(tone = "neutral") {
 
 export default function TodoPage() {
   const currentUser = useMemo(() => getCurrentUser(), []);
-  const [tasks, setTasks] = useState(() => defaultTasks.map(normalizeTask));
+  const [tasks, setTasks] = useState(() =>
+    createDefaultTasks().map(normalizeTask)
+  );
   const [people, setPeople] = useState([]);
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -507,24 +519,29 @@ export default function TodoPage() {
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [activeTimerId, setActiveTimerId] = useState("");
   const [newChecklistItem, setNewChecklistItem] = useState("");
-  const [now, setNow] = useState(INITIAL_NOW);
+  const [now, setNow] = useState(HYDRATION_TIMESTAMP);
   const storageLoadedRef = useRef(false);
 
   useEffect(() => {
     window.setTimeout(() => {
       try {
+        const timestamp = getTimestamp();
         const savedTasks = window.localStorage.getItem(STORAGE_KEY);
         const nextTasks = savedTasks
           ? JSON.parse(savedTasks).map(normalizeTask)
-          : defaultTasks.map(normalizeTask);
+          : createDefaultTasks(timestamp).map(normalizeTask);
         const runningTask = nextTasks.find((task) => task.timerStartedAt);
 
         storageLoadedRef.current = true;
         setTasks(nextTasks);
         setActiveTimerId(runningTask?.id || "");
+        setNow(timestamp);
       } catch {
+        const timestamp = getTimestamp();
+
         storageLoadedRef.current = true;
-        setTasks(defaultTasks.map(normalizeTask));
+        setTasks(createDefaultTasks(timestamp).map(normalizeTask));
+        setNow(timestamp);
       }
     }, 0);
   }, []);

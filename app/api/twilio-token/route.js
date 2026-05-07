@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import twilio from "twilio";
 import { getRequestUser } from "../../../lib/auth";
 
+const voiceConfigFields = {
+  accountSid: "TWILIO_ACCOUNT_SID",
+  apiKey: "TWILIO_API_KEY",
+  apiSecret: "TWILIO_API_SECRET",
+  twimlAppSid: "TWILIO_TWIML_APP_SID",
+};
+
+function cleanText(value = "") {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function cleanIdentity(value = "") {
   const identity = String(value || "")
     .trim()
@@ -11,13 +22,25 @@ function cleanIdentity(value = "") {
   return identity || "egchat_user";
 }
 
+function getVoiceConfig() {
+  const config = Object.fromEntries(
+    Object.entries(voiceConfigFields).map(([key, envName]) => [
+      key,
+      cleanText(process.env[envName]),
+    ])
+  );
+  const missing = Object.entries(voiceConfigFields)
+    .filter(([key]) => !config[key])
+    .map(([, envName]) => envName);
+
+  return { ...config, missing };
+}
+
 export async function POST(req) {
   try {
     const user = getRequestUser(req);
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const apiKey = process.env.TWILIO_API_KEY;
-    const apiSecret = process.env.TWILIO_API_SECRET;
-    const twimlAppSid = process.env.TWILIO_TWIML_APP_SID;
+    const { accountSid, apiKey, apiSecret, twimlAppSid, missing } =
+      getVoiceConfig();
 
     if (!user?._id) {
       return NextResponse.json(
@@ -26,9 +49,20 @@ export async function POST(req) {
       );
     }
 
-    if (!accountSid || !apiKey || !apiSecret || !twimlAppSid) {
+    if (missing.length > 0) {
+      const message =
+        process.env.NODE_ENV === "production"
+          ? "Twilio Voice SDK credentials are not configured"
+          : `Twilio Voice SDK credentials are not configured. Missing: ${missing.join(
+              ", "
+            )}`;
+
       return NextResponse.json(
-        { message: "Twilio Voice SDK credentials are not configured" },
+        {
+          message,
+          code: "TWILIO_VOICE_CONFIG_MISSING",
+          missing,
+        },
         { status: 500 }
       );
     }

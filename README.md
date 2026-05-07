@@ -36,6 +36,32 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 ```
 
+Twilio phone calls are optional. Browser calling uses the Twilio Voice SDK and
+needs these server-only variables:
+
+```bash
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_PHONE_NUMBER=+15551234567
+TWILIO_API_KEY=...
+TWILIO_API_SECRET=...
+TWILIO_TWIML_APP_SID=...
+TWILIO_FROM_NUMBER=+15551234567
+NEXT_PUBLIC_APP_URL=https://your-domain.example
+```
+
+Create a Twilio API Key/Secret and a TwiML App in the Twilio Console. Set the
+TwiML App voice request URL to `https://your-domain.example/api/twilio-voice`.
+For local testing, expose the app with a public HTTPS tunnel and use that URL.
+
+Chat phone tools use:
+
+- `POST /api/twilio/sms` for authenticated SMS sends.
+- `POST /api/twilio/call` for authenticated Twilio voice notifications.
+- `POST /api/twilio/lookup` for country, carrier, line type, and validity.
+- `POST /api/location/live` and `DELETE /api/location/live` for consent-based
+  browser GPS sharing. Twilio lookup cannot provide live GPS from a phone number.
+
 ## Production
 
 ```bash
