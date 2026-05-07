@@ -9,6 +9,7 @@ const publicApiRoutes = [
   "/api/login",
   "/api/logout",
   "/api/register",
+  "/api/twilio-voice",
 ];
 
 const publicApiPrefixes = ["/api/media/"];
