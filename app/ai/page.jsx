@@ -9,7 +9,6 @@ import {
   ImageIcon,
   Languages,
   Loader2,
-  MessageSquareText,
   Reply,
   RotateCcw,
   Send,
@@ -347,7 +346,7 @@ export default function AiPage() {
             <div className="mx-auto grid min-h-[60vh] max-w-4xl place-items-center">
               <div className="app-premium-card w-full rounded-[2rem] p-6 text-center sm:p-8">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-300/20">
-                  <MessageSquareText className="h-8 w-8" />
+                  <ModeIcon className="h-8 w-8" />
                 </div>
 
                 <h2 className="mt-5 text-3xl font-black tracking-tight">

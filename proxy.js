@@ -14,6 +14,13 @@ const publicApiRoutes = [
 
 const publicApiPrefixes = ["/api/media/"];
 
+const bearerApiRoutes = [
+  "/api/prescription-reader",
+  "/api/prescription-validate",
+  "/api/v1/prescription/extract",
+  "/api/v1/prescription/validate",
+];
+
 export function proxy(request) {
   const { pathname } = request.nextUrl;
 
@@ -26,6 +33,16 @@ export function proxy(request) {
   }
 
   const hasUserCookie = Boolean(request.cookies.get("user")?.value);
+  const hasBearerToken = /^Bearer\s+\S+/i.test(
+    request.headers.get("authorization") || ""
+  );
+
+  if (
+    bearerApiRoutes.some((route) => pathname === route) &&
+    (hasUserCookie || hasBearerToken)
+  ) {
+    return NextResponse.next();
+  }
 
   if (!hasUserCookie) {
     return NextResponse.json(

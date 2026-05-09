@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import {
   CircleAlert,
+  FileText,
   Hash,
   Loader2,
   ListTodo,
@@ -29,6 +30,7 @@ const items = [
   { name: "Messages", icon: MessageSquare, href: "/chat" },
   { name: "Rooms", icon: Hash, href: "/rooms" },
   { name: "Tasks", icon: ListTodo, href: "/todo" },
+  { name: "Prescription", icon: FileText, href: "/prescription" },
   { name: "Contacts", icon: Users, href: "/friends" },
   { name: "Calls", icon: Phone, href: "/calls" },
   { name: "Status", icon: CircleAlert, href: "/status" },
