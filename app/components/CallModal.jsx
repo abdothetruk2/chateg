@@ -20,12 +20,18 @@ export default function CallModal({
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
   const startCallTimeoutRef = useRef(null);
   const callRecordIdRef = useRef("");
+  const pendingIceCandidatesRef = useRef([]);
+  const startedCallRef = useRef(false);
+  const acceptedCallRef = useRef(false);
+  const endingCallRef = useRef(false);
 
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(callType === "video");
   const [status, setStatus] = useState("Ready");
+  const [hasRemoteStream, setHasRemoteStream] = useState(false);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
 
   const myName = currentUser?.username;
@@ -41,6 +47,47 @@ export default function CallModal({
     incomingCall && status === "Ready"
       ? `${incomingCall.from} is calling...`
       : status;
+
+  function getCallId() {
+    return callRecordIdRef.current || incomingCall?.callId || "";
+  }
+
+  function isCurrentSignal(data = {}) {
+    if (data.from && data.from === myName) return false;
+
+    const currentCallId = getCallId();
+    if (currentCallId && data.callId && data.callId !== currentCallId) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function getMediaErrorMessage(error, type = "video") {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      return "This browser does not support camera or microphone access.";
+    }
+
+    if (error?.name === "NotAllowedError") {
+      return "Camera or microphone permission was denied.";
+    }
+
+    if (error?.name === "NotFoundError") {
+      return type === "video"
+        ? "No camera was found. The call can continue with audio only."
+        : "No microphone was found.";
+    }
+
+    if (
+      error?.name === "NotReadableError" ||
+      error?.name === "TrackStartError" ||
+      /starting videoinput failed/i.test(error?.message || "")
+    ) {
+      return "Camera is already in use or could not start. The call can continue with audio only.";
+    }
+
+    return error?.message || "Could not start the call.";
+  }
 
   async function createCallRecord() {
     if (callRecordIdRef.current) return callRecordIdRef.current;
@@ -84,12 +131,32 @@ export default function CallModal({
   }
 
   async function getMedia(type = "video") {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: type === "video",
-    });
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("This browser does not support camera or microphone access.");
+    }
+
+    let stream;
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: type === "video",
+      });
+    } catch (error) {
+      if (type !== "video") throw error;
+
+      console.warn("Video input failed, retrying with audio only:", error);
+      setStatus(getMediaErrorMessage(error, type));
+      setCamOn(false);
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false,
+      });
+    }
 
     localStreamRef.current = stream;
+    setMicOn(Boolean(stream.getAudioTracks()[0]?.enabled));
+    setCamOn(Boolean(stream.getVideoTracks()[0]?.enabled));
 
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = stream;
@@ -98,13 +165,75 @@ export default function CallModal({
     return stream;
   }
 
+  function attachRemoteStream(stream) {
+    if (!stream || !remoteVideoRef.current) return;
+
+    if (remoteVideoRef.current.srcObject !== stream) {
+      remoteVideoRef.current.srcObject = stream;
+    }
+
+    remoteVideoRef.current.play?.().catch(() => {});
+  }
+
+  function handleRemoteTrack(event) {
+    const stream = event.streams?.[0] || remoteStreamRef.current || new MediaStream();
+    const track = event.track;
+
+    remoteStreamRef.current = stream;
+
+    if (track && !stream.getTracks().some((item) => item.id === track.id)) {
+      stream.addTrack(track);
+    }
+
+    setHasRemoteStream(true);
+
+    if (track?.kind === "video") {
+      setHasRemoteVideo(true);
+      track.onunmute = () => setHasRemoteVideo(true);
+      track.onended = () => {
+        setHasRemoteVideo(
+          stream.getVideoTracks().some((videoTrack) => videoTrack.readyState === "live")
+        );
+      };
+    }
+
+    attachRemoteStream(stream);
+  }
+
   function createPeer() {
+    if (peerRef.current && peerRef.current.signalingState !== "closed") {
+      peerRef.current.close();
+    }
+
     const peer = new RTCPeerConnection(iceServers);
 
-    peer.ontrack = (event) => {
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-        setHasRemoteVideo(true);
+    peer.ontrack = handleRemoteTrack;
+
+    peer.onconnectionstatechange = () => {
+      if (peer.connectionState === "connected") {
+        setStatus("Connected");
+      }
+
+      if (peer.connectionState === "failed") {
+        setStatus("Call connection failed.");
+      }
+
+      if (peer.connectionState === "disconnected") {
+        setStatus("Call disconnected.");
+      }
+    };
+
+    peer.oniceconnectionstatechange = () => {
+      if (peer.iceConnectionState === "checking") {
+        setStatus("Connecting media...");
+      }
+
+      if (peer.iceConnectionState === "connected" || peer.iceConnectionState === "completed") {
+        setStatus("Connected");
+      }
+
+      if (peer.iceConnectionState === "failed") {
+        setStatus("Media connection failed.");
       }
     };
 
@@ -114,6 +243,7 @@ export default function CallModal({
           from: myName,
           to: signalingTarget,
           room: !incomingCall && roomName ? roomName : undefined,
+          callId: getCallId(),
           candidate: event.candidate,
         });
       }
@@ -123,64 +253,128 @@ export default function CallModal({
     return peer;
   }
 
+  async function addIceCandidate(candidate) {
+    const peer = peerRef.current;
+
+    if (!peer) {
+      pendingIceCandidatesRef.current.push(candidate);
+      return;
+    }
+
+    if (peer.signalingState === "closed") return;
+
+    if (!peer.remoteDescription) {
+      pendingIceCandidatesRef.current.push(candidate);
+      return;
+    }
+
+    try {
+      await peer.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {
+      if (/ufrag/i.test(error?.message || "")) {
+        console.warn("Ignored stale ICE candidate:", error.message);
+        return;
+      }
+
+      console.warn("Could not add ICE candidate:", error);
+    }
+  }
+
+  async function flushPendingIceCandidates() {
+    if (!peerRef.current?.remoteDescription) return;
+
+    const candidates = pendingIceCandidatesRef.current.splice(0);
+
+    for (const candidate of candidates) {
+      await addIceCandidate(candidate);
+    }
+  }
+
   async function startCall() {
     if (!socket || !myName || !signalingTarget) return;
+    if (startedCallRef.current) return;
 
-    setStatus("Calling...");
-    setCamOn(activeCallType === "video");
+    startedCallRef.current = true;
+    endingCallRef.current = false;
 
-    const stream = await getMedia(activeCallType);
-    const peer = createPeer();
+    try {
+      setStatus("Calling...");
+      setCamOn(activeCallType === "video");
 
-    stream.getTracks().forEach((track) => {
-      peer.addTrack(track, stream);
-    });
+      const stream = await getMedia(activeCallType);
+      const callId = await createCallRecord();
+      const peer = createPeer();
 
-    const offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
-    const callId = await createCallRecord();
+      stream.getTracks().forEach((track) => {
+        peer.addTrack(track, stream);
+      });
 
-    socket.emit("call-user", {
-      from: myName,
-      to: signalingTarget,
-      room: roomName || undefined,
-      offer,
-      callType: activeCallType,
-      callId,
-    });
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+
+      socket.emit("call-user", {
+        from: myName,
+        to: signalingTarget,
+        room: roomName || undefined,
+        offer,
+        callType: activeCallType,
+        callId,
+      });
+    } catch (error) {
+      console.error("Start call failed:", error);
+      startedCallRef.current = false;
+      cleanup();
+      setStatus(getMediaErrorMessage(error, activeCallType));
+    }
   }
 
   async function acceptCall() {
     if (!socket || !incomingCall) return;
+    if (acceptedCallRef.current) return;
 
+    acceptedCallRef.current = true;
     callRecordIdRef.current = incomingCall.callId || "";
-    setStatus("Connected");
-    setCamOn((incomingCall.callType || "video") === "video");
+    endingCallRef.current = false;
 
-    const stream = await getMedia(incomingCall.callType || "video");
-    const peer = createPeer();
+    try {
+      setStatus("Connecting...");
+      setCamOn((incomingCall.callType || "video") === "video");
 
-    stream.getTracks().forEach((track) => {
-      peer.addTrack(track, stream);
-    });
+      const stream = await getMedia(incomingCall.callType || "video");
+      const peer = createPeer();
 
-    await peer.setRemoteDescription(
-      new RTCSessionDescription(incomingCall.offer)
-    );
+      stream.getTracks().forEach((track) => {
+        peer.addTrack(track, stream);
+      });
 
-    const answer = await peer.createAnswer();
-    await peer.setLocalDescription(answer);
+      await peer.setRemoteDescription(
+        new RTCSessionDescription(incomingCall.offer)
+      );
+      await flushPendingIceCandidates();
 
-    socket.emit("answer-call", {
-      from: myName,
-      to: incomingCall.from,
-      answer,
-      callId: callRecordIdRef.current,
-    });
-    updateCallRecord("accepted");
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+
+      socket.emit("answer-call", {
+        from: myName,
+        to: incomingCall.from,
+        answer,
+        callId: callRecordIdRef.current,
+      });
+      updateCallRecord("accepted");
+      setStatus("Connected");
+    } catch (error) {
+      console.error("Accept call failed:", error);
+      acceptedCallRef.current = false;
+      cleanup();
+      setStatus(getMediaErrorMessage(error, incomingCall.callType || "video"));
+    }
   }
 
   function endCall() {
+    if (endingCallRef.current) return;
+
+    endingCallRef.current = true;
     updateCallRecord("ended");
     socket?.emit("end-call", {
       from: myName,
@@ -194,14 +388,20 @@ export default function CallModal({
   }
 
   function cleanup() {
-    peerRef.current?.close();
+    if (peerRef.current && peerRef.current.signalingState !== "closed") {
+      peerRef.current.close();
+    }
     peerRef.current = null;
+    pendingIceCandidatesRef.current = [];
 
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
+    remoteStreamRef.current?.getTracks().forEach((track) => track.stop());
+    remoteStreamRef.current = null;
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    setHasRemoteStream(false);
     setHasRemoteVideo(false);
   }
 
@@ -225,26 +425,34 @@ export default function CallModal({
     if (!open || !socket) return;
 
     const handleAnswered = async (data) => {
-      if (!peerRef.current) return;
+      const peer = peerRef.current;
+      if (!peer || !isCurrentSignal(data)) return;
 
-      await peerRef.current.setRemoteDescription(
-        new RTCSessionDescription(data.answer)
-      );
+      if (peer.signalingState !== "have-local-offer") {
+        return;
+      }
 
-      if (data?.callId) callRecordIdRef.current = data.callId;
-      updateCallRecord("accepted");
-      setStatus("Connected");
+      try {
+        await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
+        await flushPendingIceCandidates();
+
+        if (data?.callId) callRecordIdRef.current = data.callId;
+        updateCallRecord("accepted");
+        setStatus("Connected");
+      } catch (error) {
+        console.warn("Could not apply call answer:", error);
+      }
     };
 
     const handleIce = async (data) => {
-      if (!peerRef.current || !data?.candidate) return;
+      if (!data?.candidate || !isCurrentSignal(data)) return;
 
-      await peerRef.current.addIceCandidate(
-        new RTCIceCandidate(data.candidate)
-      );
+      await addIceCandidate(data.candidate);
     };
 
-    const handleEnded = () => {
+    const handleEnded = (data) => {
+      if (!isCurrentSignal(data)) return;
+
       updateCallRecord("ended");
       cleanup();
       onClose?.();
@@ -266,16 +474,34 @@ export default function CallModal({
     if (!open) return;
 
     callRecordIdRef.current = incomingCall?.callId || "";
+    startedCallRef.current = false;
+    acceptedCallRef.current = false;
+    endingCallRef.current = false;
+    pendingIceCandidatesRef.current = [];
+
+    const resetStateTimer = setTimeout(() => {
+      setStatus("Ready");
+      setHasRemoteStream(false);
+      setHasRemoteVideo(false);
+    }, 0);
 
     if (incomingCall) {
-      return;
+      return () => clearTimeout(resetStateTimer);
     }
 
     startCallTimeoutRef.current = setTimeout(() => {
       startCall();
     }, 0);
 
-    return () => clearTimeout(startCallTimeoutRef.current);
+    return () => {
+      clearTimeout(resetStateTimer);
+      clearTimeout(startCallTimeoutRef.current);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    attachRemoteStream(remoteStreamRef.current);
   }, [open]);
 
   if (!open) return null;
@@ -312,7 +538,13 @@ export default function CallModal({
 
             {!hasRemoteVideo && (
               <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-slate-500">
-                Waiting for remote video...
+                {activeCallType === "audio"
+                  ? hasRemoteStream
+                    ? "Voice call connected"
+                    : "Waiting for remote audio..."
+                  : hasRemoteStream
+                  ? "Remote camera is off"
+                  : "Waiting for remote video..."}
               </div>
             )}
           </div>

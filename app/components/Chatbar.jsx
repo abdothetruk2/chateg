@@ -13,6 +13,7 @@ import {
   getBrowserNotificationPermission,
   playNotificationSound,
   requestBrowserNotifications,
+  showBrowserNotification,
 } from "../../lib/clientPreferences";
 import { allEmotionEmojis } from "../../lib/emotions";
 import {
@@ -1432,7 +1433,15 @@ useEffect(() => {
     function onIncomingCall(data) {
       if (!data?.from || data?.from === currentUser?.username) return;
 
+      const incomingCallType = data.callType === "audio" ? "voice" : "video";
+
       playNotificationSound("call");
+      showBrowserNotification({
+        title: `Incoming ${incomingCallType} call`,
+        body: `${data.from} is calling you on Egchat.`,
+        icon: selectedUser?.avatar || "/avatar.jpg",
+        tag: `egchat-call-${data.callId || data.from}`,
+      });
       setIncomingCall(data);
       setCallType(data.callType || "video");
       setCallPeer(

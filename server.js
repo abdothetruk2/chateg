@@ -241,6 +241,7 @@ const io = new Server(httpServer, {
       socket.to(data.room).emit("ice-candidate", {
         from: data.from,
         room: data.room,
+        callId: data.callId || "",
         candidate: data.candidate,
       });
       return;
@@ -251,6 +252,7 @@ const io = new Server(httpServer, {
     receiverSocketIds.forEach((socketId) => {
       io.to(socketId).emit("ice-candidate", {
         from: data.from,
+        callId: data.callId || "",
         candidate: data.candidate,
       });
     });
