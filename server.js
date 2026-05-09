@@ -43,6 +43,18 @@ async function resetPresenceOnBoot() {
   }
 }
 
+function getConversationType(data = {}) {
+  if (data.conversationType === "group" || data.type === "group") {
+    return "group";
+  }
+
+  if (data.type === "location" && data.chat) {
+    return "group";
+  }
+
+  return "user";
+}
+
 app.prepare().then(async () => {
   await resetPresenceOnBoot();
 
@@ -109,7 +121,7 @@ const io = new Server(httpServer, {
     socket.on("message", function (data) {
       if (!data) return;
 
-      if (data.type === "group") {
+      if (getConversationType(data) === "group") {
         const room = data.chat || data.receiver;
         if (room) io.to(room).emit("message", data);
         return;
@@ -133,7 +145,7 @@ const io = new Server(httpServer, {
     function emitMessageUpdate(eventName, data) {
       if (!data) return;
 
-      if (data.type === "group") {
+      if (getConversationType(data) === "group") {
         const room = data.chat || data.receiver || data.recname;
         if (room) socket.to(room).emit(eventName, data);
         return;
@@ -282,7 +294,7 @@ const io = new Server(httpServer, {
   socket.on("live-location:update", (data) => {
     if (!data?.sender) return;
 
-    if (data?.type === "group") {
+    if (getConversationType(data) === "group") {
       const room = data.chat || data.receiver;
       if (room) socket.to(room).emit("live-location:update", data);
       return;
@@ -294,7 +306,7 @@ const io = new Server(httpServer, {
   socket.on("live-location:stop", (data) => {
     if (!data?.sender) return;
 
-    if (data?.type === "group") {
+    if (getConversationType(data) === "group") {
       const room = data.chat || data.receiver;
       if (room) socket.to(room).emit("live-location:stop", data);
       return;

@@ -12,9 +12,17 @@ const MessageSchema = new mongoose.Schema(
     read:{type:Boolean,default:false},
     type: {
       type: String,
+      enum: ["user", "group", "location"],
+      default: "user",
+    },
+    conversationType: {
+      type: String,
       enum: ["user", "group"],
       default: "user",
     },
+    latitude: { type: Number },
+    longitude: { type: Number },
+    accuracy: { type: Number, default: null },
     avatar: { type: String, default: "" },
     clientId: { type: String, default: "" },
     reactions: [

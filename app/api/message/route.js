@@ -7,6 +7,10 @@ function getNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function getGoogleMapsLink(latitude, longitude) {
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
+}
+
 function normalizeLocation(location) {
   if (!location || typeof location !== "object") return null;
 
@@ -52,17 +56,38 @@ export async function POST(req) {
       media = "",
       mediaType = "",
       type = "user",
+      conversationType = "",
       clientId = "",
       avatar = "",
       chat = "",
       storyReply = null,
       location = null,
+      latitude = null,
+      longitude = null,
+      accuracy = null,
     } = body;
-    const normalizedLocation = normalizeLocation(location);
+    const normalizedLocation = normalizeLocation(
+      location || { latitude, longitude, accuracy }
+    );
+    const isLocationMessage = type === "location" || Boolean(normalizedLocation);
+    const normalizedConversationType =
+      conversationType === "group" ||
+      type === "group" ||
+      (isLocationMessage && chat)
+        ? "group"
+        : "user";
+    const messageType = isLocationMessage ? "location" : normalizedConversationType;
 
     if (!sender || !receiver) {
       return NextResponse.json(
         { error: "sender and receiver are required" },
+        { status: 400 }
+      );
+    }
+
+    if (type === "location" && !normalizedLocation) {
+      return NextResponse.json(
+        { error: "Valid latitude and longitude are required" },
         { status: 400 }
       );
     }
@@ -78,13 +103,20 @@ export async function POST(req) {
       sender,
       receiver,
       recname: recname || receiver,
-      message: message.trim(),
+      message:
+        isLocationMessage && normalizedLocation && !message.trim()
+          ? getGoogleMapsLink(
+              normalizedLocation.latitude,
+              normalizedLocation.longitude
+            )
+          : message.trim(),
       media,
       mediaType,
       avatar,
       clientId,
-      type,
-      chat: type === "group" ? chat || receiver : "",
+      type: messageType,
+      conversationType: normalizedConversationType,
+      chat: normalizedConversationType === "group" ? chat || receiver : "",
       unread: 1,
     };
 
@@ -94,6 +126,9 @@ export async function POST(req) {
 
     if (normalizedLocation) {
       messageData.location = normalizedLocation;
+      messageData.latitude = normalizedLocation.latitude;
+      messageData.longitude = normalizedLocation.longitude;
+      messageData.accuracy = normalizedLocation.accuracy;
     }
 
     const createdMessage = await Messages.create(messageData);
